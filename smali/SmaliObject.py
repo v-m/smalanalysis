@@ -510,19 +510,23 @@ class SmaliClass(SmaliAnnotableModifiable):
         while len(fself) > 0:
             field = fself.pop()
 
-            whereIsUsed = self.whereIsFieldUsed(field)
-            f = self.tryToDetectFieldRenaming(field, whereIsUsed, other, fother)
+            found = False
+            for f in fother:
+                if len(field.differences(f, ComparisonIgnores.FIELD_INIT)) == 0 or f.name == field.name:
+                    diffs.append([field, f, ChangesTypes.FIELD_CHANGED, field.differences(f, [])])
+                    found = True
+                    fother.remove(f)
+                    break
 
-            if f is not None:
-                if f.name == field.name:
-                    diffs.append([field, f, ChangesTypes.FIELD_CHANGED_TYPE])
-                elif f.type == field.type:
-                    diffs.append([field, f, ChangesTypes.FIELD_CHANGED_NAME])
+            if not found:
+                whereIsUsed = self.whereIsFieldUsed(field)
+                f = self.tryToDetectFieldRenaming(field, whereIsUsed, other, fother)
+
+                if f is not None:
+                    diffs.append([field, f, ChangesTypes.FIELD_CHANGED, field.differences(f, [])])
+                    fother.remove(f)
                 else:
-                    diffs.append([field, f, ChangesTypes.FIELD_CHANGED])
-                fother.remove(f)
-            else:
-                diffs.append([field, None, ChangesTypes.NOT_FOUND])
+                    diffs.append([field, None, ChangesTypes.NOT_FOUND])
 
         while len(fother) > 0:
             field = fother.pop()
