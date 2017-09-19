@@ -21,6 +21,7 @@ SELF = 'SELF'
 OTHER = 'OTHER'
 
 classnamepattern = re.compile("L(.*?)(\\$.+)*;")
+methodcallpattern = re.compile("(.*)->(.*):(.*)")
 
 def compareStringSets(m1, m2):
     for a in m1:
@@ -223,9 +224,12 @@ class SmaliWithLines(SmaliAnnotableModifiable):
                 slines.append(line)
         return slines
 
+    def getCleanLines(self):
+        return SmaliWithLines.cleanLines(self.lines)
+
     def areSourceCodeSimilars(self, other):
-        slines = SmaliWithLines.cleanLines(self.lines)
-        olines = SmaliWithLines.cleanLines(other.lines)
+        slines = self.getCleanLines()
+        olines = other.getCleanLines()
         return compareListsSameposition(slines, olines)
 
     @staticmethod
@@ -506,21 +510,16 @@ class SmaliClass(SmaliAnnotableModifiable):
         while len(fself) > 0:
             field = fself.pop()
 
-            op = None
+            whereIsUsed = self.whereIsFieldUsed(field)
+            f = self.tryToDetectFieldRenaming(field, whereIsUsed, other, fother)
 
-            for f in fother:
-                diff = field.differences(f, ignores)
-
-                if len(diff) == 1:
-                    if diff[0] == NOT_SAME_TYPE:
-                        op = [f, ChangesTypes.TYPE_CHANGED]
-                        break
-                    elif diff[0] == NOT_SAME_NAME:
-                        op = [f, ChangesTypes.NAME_CHANGED]
-                        break
-
-            if op is not None:
-                diffs.append([field, op[0], op[1]])
+            if f is not None:
+                if f.name == field.name:
+                    diffs.append([field, f, ChangesTypes.FIELD_CHANGED_TYPE])
+                elif f.type == field.type:
+                    diffs.append([field, f, ChangesTypes.FIELD_CHANGED_NAME])
+                else:
+                    diffs.append([field, f, ChangesTypes.FIELD_CHANGED])
                 fother.remove(f)
             else:
                 diffs.append([field, None, ChangesTypes.NOT_FOUND])
@@ -530,3 +529,64 @@ class SmaliClass(SmaliAnnotableModifiable):
             diffs.append([None, field, ChangesTypes.NOT_FOUND])
 
         return sames, diffs
+
+    def whereIsFieldUsed(self, field):
+        ret = []
+
+        fieldCall = "%s->%s:%s"%(self.name.strip(), field.name.strip(), field.type.strip())
+        for m in self.methods:
+            lnr = 0
+
+            for lc in m.getCleanLines():
+                if fieldCall in lc:
+                    ret.append([m, lnr])
+                lnr+=1
+
+        return ret
+
+    def tryToDetectFieldRenaming(self, field, whereIsUsed, newClass, nfields):
+        fieldCall = "%s->%s:%s"%(self.name.strip(), field.name.strip(), field.type.strip())
+
+        for usage in whereIsUsed:
+            usageline = usage[1]
+            simeth = newClass.findSimilarMethod(usage[0])
+
+            if simeth is not None:
+                line1 = usage[0].getCleanLines()[usageline]
+
+                line2content = simeth.getCleanLines()
+
+                if len(line2content) > usageline:
+                    before = line1[0:line1.index(fieldCall)]
+                    after = line1[len(before) + len(fieldCall):]
+
+                    line2 = simeth.getCleanLines()[usageline]
+                    newCandidate = line2.replace(before, '').replace(after, '')
+
+                    for f in nfields:
+                        if SmaliClass.matchFieldAndFieldCall(f, newCandidate):
+                            return f
+
+        return None
+
+    def findSimilarMethod(self, method):
+        for m in self.methods:
+            if len(method.differences(m, [ ComparisonIgnores.WITHLINES_SOURCECODE ])) == 0:
+                return m
+
+        return None
+
+    @staticmethod
+    def matchFieldAndFieldCall(field, fieldcall):
+        m = methodcallpattern.match(fieldcall)
+
+        if m is not None:
+            return field.name.strip() == m.group(2).strip() and field.type.strip() == m.group(3).strip()
+
+    def findFieldWithMethodCall(self, fcall):
+        if self.name == m.group(1):
+            for f in self.fields:
+                if SmaliClass.matchFieldAndFieldCall(f, fcall):
+                    return f
+
+        return None

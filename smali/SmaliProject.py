@@ -1,19 +1,15 @@
 import re
 import os
+from smali.SmaliObject import SmaliClass, SmaliField, SmaliAnnotation, SmaliMethod, compareListsBoolean
 
-from smali.SmaliObject import SmaliField, SmaliAnnotation, SmaliMethod, bidirectCompareLists, compareListsBoolean, \
-    SmaliClass
-
-MATCHERS = {
-    'method': re.compile("\\.method( [a-z \\-]+?)?( [a-zA-Z0-9<>_$]+)?\\((.*)\\)(.*)"),
-    'method_param' : re.compile("(L[a-zA-Z0-9/]+;|Z|B|S|C|I|J|F|D)"),
-    'field_init': re.compile("(L[a-zA-Z0-9/]+;|Z|B|S|C|I|J|F|D)( = .*)"),
-    'fields' : re.compile("\\.field( [a-z ]+)*( [a-zA-Z0-9_$]*)+?:(.*)"),
-    'class' : re.compile("\\.class( [a-z ]+)*( [a-zA-Z][a-zA-Z0-9_/$]*)+?;"),
-    'annotation' : re.compile("\\.annotation( [a-z ]+)*( L[a-zA-Z0-9_/$]*);"),
-}
-
-ressource_classes = re.compile("R(\\$[a-z]+)*\\.smali")
+class MATCHERS:
+    method = re.compile("\\.method( [a-z \\-]+?)?( [a-zA-Z0-9<>_$]+)?\\((.*)\\)(.*)")
+    method_param = re.compile("(L[a-zA-Z0-9/]+;|Z|B|S|C|I|J|F|D)")
+    field_init = re.compile("(L[a-zA-Z0-9/]+;|Z|B|S|C|I|J|F|D)( = .*)")
+    fields = re.compile("\\.field( [a-z ]+)*( [a-zA-Z0-9_$]*)+?:(.*)")
+    clazz = re.compile("\\.class( [a-z ]+)*( [a-zA-Z][a-zA-Z0-9_/$]*)+?;")
+    annotation = re.compile("\\.annotation( [a-z ]+)*( L[a-zA-Z0-9_/$]*);")
+    ressource_classes = re.compile("R(\\$[a-z]+)*\\.smali")
 
 class SmaliProject(object):
     def __init__(self):
@@ -37,7 +33,7 @@ class SmaliProject(object):
                 SmaliProject.parseFolderLoop(fullpath, target, package, root)
             elif fullpath.endswith('.smali'):
                 if package is None or package.replace('.', '/') in fullpath:
-                    if not ressource_classes.match(ff):
+                    if not MATCHERS.ressource_classes.match(ff):
                         target.addClass(SmaliProject.parseClass(fullpath))
 
     def parseFolder(self, folder, package = None):
@@ -147,7 +143,7 @@ class SmaliProject(object):
                         readingannotation.addLine(line.strip())
                     continue
 
-                matched = MATCHERS['class'].match(line)
+                matched = MATCHERS.clazz.match(line)
                 if matched is not None:
                     clazz.setName('%s;' % (matched.group(2).strip()))
                     clazz.addModifiersFromList(matched.group(1).strip().split(' ') if matched.group(1) is not None else None)
@@ -165,7 +161,7 @@ class SmaliProject(object):
                     clazz.addImplementedInterface(line[len('.implements'):].strip())
                     continue
 
-                matched = MATCHERS['annotation'].match(line.strip())
+                matched = MATCHERS.annotation.match(line.strip())
                 if matched is not None:
                     modifiers = matched.group(1).strip().split(' ')
                     name = matched.group(2)
@@ -173,12 +169,12 @@ class SmaliProject(object):
                     readingannotation = SmaliAnnotation(name, modifiers)
                     continue
 
-                matched = MATCHERS['method'].match(line)
+                matched = MATCHERS.method.match(line)
                 if matched is not None:
                     # Well this is a method...
                     modifiers = matched.group(1).strip().split(' ') if matched.group(1) is not None else None
                     name = matched.group(2)
-                    parameters = MATCHERS['method_param'].findall(matched.group(3))
+                    parameters = MATCHERS.method_param.findall(matched.group(3))
                     returnval = matched.group(4)
 
                     readingmethod = SmaliMethod(name, parameters, returnval, modifiers)
@@ -186,12 +182,12 @@ class SmaliProject(object):
                     clazz.addMethod(readingmethod)
                     continue
 
-                matched = MATCHERS['fields'].match(line)
+                matched = MATCHERS.fields.match(line)
                 if matched is not None:
                     type = matched.group(3)
                     init = None
 
-                    matched2 = MATCHERS['field_init'].match(type)
+                    matched2 = MATCHERS.field_init.match(type)
                     if matched2 is not None:
                         type = matched2.group(1)
                         init = matched2.group(2)[3:]
