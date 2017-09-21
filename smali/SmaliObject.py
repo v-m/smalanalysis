@@ -181,9 +181,9 @@ class SmaliAnnotableModifiable(object):
             if not compareStringSets(self.modifiers, other.modifiers):
                 ret.append(NOT_SAME_MODIFIERS)
 
-        if ComparisonIgnores.ANOT_MOD_ANNOTATIONS not in ignores:
-            if not not len(self.annotations) != len(other.annotations):
-                ret.append(NOT_SAME_ANNOTATIONS)
+        #if ComparisonIgnores.ANOT_MOD_ANNOTATIONS not in ignores:
+        #    if not not len(self.annotations) != len(other.annotations):
+        #        ret.append(NOT_SAME_ANNOTATIONS)
                 #TODO annotations ?
 
         return ret
