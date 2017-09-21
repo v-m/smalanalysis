@@ -16,6 +16,8 @@ def isEvolution(l):
             return False
         elif d[0] is None and d[2] == ChangesTypes.NOT_FOUND:
             atLeastOne = True
+        elif d[2] == ChangesTypes.REVISED_METHOD:
+            pass
         else:
             return False
 

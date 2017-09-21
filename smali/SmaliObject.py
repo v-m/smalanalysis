@@ -23,6 +23,14 @@ OTHER = 'OTHER'
 classnamepattern = re.compile("L(.*?)(\\$.+)*;")
 methodcallpattern = re.compile("(.*)->(.*):(.*)")
 
+
+class_ref_pattern = re.compile('L(.*?);')
+method_access_pattern = re.compile('L->(.*?)\\)')
+field_access_pattern = re.compile('L->(.*?):')
+jumps_pattern = re.compile(':[a-zA-Z0-9_\\-]+')
+local_registers_pattern = re.compile('v[0-9]+')
+param_registers_pattern = re.compile('p[0-9]+')
+
 def compareStringSets(m1, m2):
     for a in m1:
         if a not in m2:
@@ -216,6 +224,20 @@ class SmaliWithLines(SmaliAnnotableModifiable):
 
         return ret
 
+    def getIdentityLines(self):
+        ret = list()
+
+        for l in self.getCleanLines():
+            l = class_ref_pattern.sub('L', l)
+            l = method_access_pattern.sub('m', l)
+            l = field_access_pattern.sub('f', l)
+            l = jumps_pattern.sub('JMP', l)
+            l = local_registers_pattern.sub('vr', l)
+            l = param_registers_pattern.sub('pr', l)
+            ret.append(l)
+
+        return ret
+
     @staticmethod
     def cleanLines(lines):
         slines = list()
@@ -235,7 +257,7 @@ class SmaliWithLines(SmaliAnnotableModifiable):
     @staticmethod
     def keepThisLine(line):
         lline = line.strip()
-        return len(lline) > 0 and lline[0] != '.'
+        return len(lline) > 0 and lline[0] != '.' and lline[0] != ':' and lline[0] != '#'
 
 class SmaliField(SmaliAnnotableModifiable):
     def __init__(self, name, type, modifiers, init):
@@ -450,12 +472,13 @@ class SmaliClass(SmaliAnnotableModifiable):
                 mttemp.append(meth)
 
         mself = mttemp
-
+        mttemp = list()
 
         while len(mself) > 0:
             meth = mself.pop()
 
             op = None
+            found  = False
 
             for m in mother:
                 diff = meth.differences(m, ignores)
@@ -467,6 +490,27 @@ class SmaliClass(SmaliAnnotableModifiable):
                         op = [m, ChangesTypes.REFACTORED_METHOD]
                 if op is None and meth.name == m.name:
                     op = [m, ChangesTypes.SAME_NAME]
+
+                if op is not None:
+                    found = True
+                    diffs.append([meth, op[0], op[1]])
+                    mother.remove(m)
+                    break
+
+            if not found:
+                mttemp.append(meth)
+
+        mself = mttemp
+        mttemp = list()
+
+        while len(mself) > 0:
+            meth = mself.pop()
+
+            op = None
+
+            for m in mother:
+                if meth.areSourceCodeSimilars(m):
+                    op = [m, ChangesTypes.RENAMED_METHOD]
 
                 if op is not None:
                     diffs.append([meth, op[0], op[1]])
