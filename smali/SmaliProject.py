@@ -1,13 +1,16 @@
 import re
 import os
+
+import sys
+
 from smali.SmaliObject import SmaliClass, SmaliField, SmaliAnnotation, SmaliMethod, compareListsBoolean
 
 class MATCHERS:
-    method = re.compile("\\.method( [a-z \\-]+?)?( [a-zA-Z0-9<>_$]+)?\\((.*)\\)(.*)")
+    method = re.compile("\\.method( [a-z \\-]+?)?( [a-zA-Z0-9<>_$\\-]+)?\\((.*)\\)(.*)")
     method_param = re.compile("(L[a-zA-Z0-9/]+;|Z|B|S|C|I|J|F|D)")
     field_init = re.compile("(L[a-zA-Z0-9/]+;|Z|B|S|C|I|J|F|D)( = .*)")
-    fields = re.compile("\\.field( [a-z ]+)*( [a-zA-Z0-9_$]*)+?:(.*)")
-    clazz = re.compile("\\.class( [a-z ]+)*( [a-zA-Z][a-zA-Z0-9_/$]*)+?;")
+    fields = re.compile("\\.field( [a-z ]+)*( [a-zA-Z0-9_$\\-]*)+?:(.*)")
+    clazz = re.compile("\\.class( [a-z ]+)*( [a-zA-Z][a-zA-Z0-9_\\-/$]*)+?;")
     annotation = re.compile("\\.annotation( [a-z ]+)*( L[a-zA-Z0-9_/$]*);")
     ressource_classes = re.compile("R(\\$[a-z]+)*\\.smali")
 
@@ -196,7 +199,8 @@ class SmaliProject(object):
                     clazz.addField(currentobj)
                     continue
 
-                print(line)
+                sys.stderr.write("Parsing error.\nLine: %s.\n"%line)
+                sys.exit(1)
 
         fp.close()
         return clazz
