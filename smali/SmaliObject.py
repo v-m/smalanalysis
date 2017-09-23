@@ -23,6 +23,7 @@ OTHER = 'OTHER'
 classnamepattern = re.compile("L(.*?)(\\$.+)*;")
 methodcallpattern = re.compile("(.*)->(.*):(.*)")
 
+RREFERENCE_PATTERN = re.compile('^const v[0-9]{1,2}, (0x[0-9a-f]{8})$')
 
 class_ref_pattern = re.compile('L(.*?);')
 method_access_pattern = re.compile('L->(.*?)\\)')
@@ -196,12 +197,18 @@ class SmaliAnnotableModifiable(object):
 class SmaliWithLines(SmaliAnnotableModifiable):
     def __init__(self, name, modifiers):
         SmaliAnnotableModifiable.__init__(self)
-        self.name = name
+        self.name = name.strip()
         self.lines = list()
         self.addModifiersFromList(modifiers)
 
+    def getName(self):
+        return self.name
+
     def addLine(self, line):
         self.lines.append(line)
+
+    def getLines(self):
+        return list(self.lines)
 
     def __eq__(self, other):
         if self.name != other.name or not self.areSourceCodeSimilars(other):
@@ -249,10 +256,29 @@ class SmaliWithLines(SmaliAnnotableModifiable):
     def getCleanLines(self):
         return SmaliWithLines.cleanLines(self.lines)
 
-    def areSourceCodeSimilars(self, other):
+    def areSourceCodeSimilars(self, other, considerRReferences = False):
         slines = self.getCleanLines()
         olines = other.getCleanLines()
+
+        if not considerRReferences:
+            slines = SmaliMethod.clearRReferences(slines)
+            olines = SmaliMethod.clearRReferences(olines)
+
         return compareListsSameposition(slines, olines)
+
+    @staticmethod
+    def clearRReferences(lines):
+        ret = list()
+
+        for line in lines:
+            mtch = RREFERENCE_PATTERN.search(line)
+
+            if mtch is not None:
+                ret.append(line.replace(mtch.group(1), '<R_REF>'))
+            else:
+                ret.append(line)
+
+        return ret
 
     @staticmethod
     def keepThisLine(line):
@@ -260,12 +286,13 @@ class SmaliWithLines(SmaliAnnotableModifiable):
         return len(lline) > 0 and lline[0] != '.' and lline[0] != ':' and lline[0] != '#'
 
 class SmaliField(SmaliAnnotableModifiable):
-    def __init__(self, name, type, modifiers, init):
+    def __init__(self, name, type, modifiers, init, clazz):
         super(SmaliField, self).__init__()
         self.name = name
         self.type = type
         self.init = init
         self.addModifiersFromList(modifiers)
+        self.clazz = clazz
 
     def __eq__(self, other):
         if self.name == other.name and self.type == other.type and self.init == other.init:
@@ -297,10 +324,11 @@ class SmaliField(SmaliAnnotableModifiable):
 
 
 class SmaliMethod(SmaliWithLines):
-    def __init__(self, name, params, ret, modifiers):
+    def __init__(self, name, params, ret, modifiers, clazz):
         SmaliWithLines.__init__(self, name, modifiers)
         self.params = params
         self.ret = ret
+        self.clazz = clazz
 
     def __eq__(self, other):
         if self.ret != other.ret or not compareListsSameposition(self.params, other.params):
@@ -332,6 +360,9 @@ class SmaliMethod(SmaliWithLines):
 
     def isMethod(self):
         return True
+
+    def getSignature(self):
+        return ('%s(%s)%s'%(self.name, ''.join(self.params), self.ret)).strip()
 
 
 class SmaliAnnotation(SmaliWithLines):
@@ -366,6 +397,9 @@ class SmaliClass(SmaliAnnotableModifiable):
 
         self.methods = []
         self.fields = []
+
+    def getName(self):
+        return self.name
 
     @staticmethod
     def getDisplayName(clazzname):
@@ -584,6 +618,11 @@ class SmaliClass(SmaliAnnotableModifiable):
         fieldCall = "%s->%s:%s"%(self.name.strip(), field.name.strip(), field.type.strip())
         for m in self.methods:
             lnr = 0
+
+            if m.getName() == '<init>' and len(m.params) == 0:
+                # Lets skip similarities in the def cstr
+                # as init value are put here for non static fields
+                continue
 
             for lc in m.getCleanLines():
                 if fieldCall in lc:

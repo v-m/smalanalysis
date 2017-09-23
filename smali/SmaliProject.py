@@ -1,3 +1,7 @@
+# Smali Projects
+# Author: Vincenzo Musco (http://www.vmusco.com)
+# Creation date: 2017-09-15
+
 import re
 import os
 
@@ -124,7 +128,9 @@ class SmaliProject(object):
         readingannotation = None
         currentobj = clazz
 
+        linenr = -1
         for line in ccontent.split('\n'):
+            linenr += 1
             if len(line) > 0 and line[0:1] != '#':
                 if readingmethod is not None:
                     if line == '.end method':
@@ -180,7 +186,7 @@ class SmaliProject(object):
                     parameters = MATCHERS.method_param.findall(matched.group(3))
                     returnval = matched.group(4)
 
-                    readingmethod = SmaliMethod(name, parameters, returnval, modifiers)
+                    readingmethod = SmaliMethod(name, parameters, returnval, modifiers, clazz)
                     currentobj = readingmethod
                     clazz.addMethod(readingmethod)
                     continue
@@ -195,12 +201,13 @@ class SmaliProject(object):
                         type = matched2.group(1)
                         init = matched2.group(2)[3:]
 
-                    currentobj = SmaliField(matched.group(2), type, matched.group(1).strip().split(' ') if matched.group(1) is not None else None, init)
+                    currentobj = SmaliField(matched.group(2), type, matched.group(1).strip().split(' ') if matched.group(1) is not None else None, init, clazz)
                     clazz.addField(currentobj)
                     continue
 
                 sys.stderr.write("Parsing error.\nLine: %s.\n"%line)
                 sys.exit(1)
+
 
         fp.close()
         return clazz
