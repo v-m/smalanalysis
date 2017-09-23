@@ -10,9 +10,10 @@ import sys
 from smali.SmaliObject import SmaliClass, SmaliField, SmaliAnnotation, SmaliMethod, compareListsBoolean
 
 class MATCHERS:
+    obj = "(\\[*(L[a-zA-Z0-9/_$\\-]+;|Z|B|S|C|I|J|F|D|V))"
     method = re.compile("\\.method( [a-z \\-]+?)?( [a-zA-Z0-9<>_$\\-]+)?\\((.*)\\)(.*)")
-    method_param = re.compile("(L[a-zA-Z0-9/]+;|Z|B|S|C|I|J|F|D)")
-    field_init = re.compile("(L[a-zA-Z0-9/]+;|Z|B|S|C|I|J|F|D)( = .*)")
+    method_param = re.compile("%s"%obj)
+    field_init = re.compile("%s( = .*)"%obj)
     fields = re.compile("\\.field( [a-z ]+)*( [a-zA-Z0-9_$\\-]*)+?:(.*)")
     clazz = re.compile("\\.class( [a-z ]+)*( [a-zA-Z][a-zA-Z0-9_\\-/$]*)+?;")
     annotation = re.compile("\\.annotation( [a-z ]+)*( L[a-zA-Z0-9_/$]*);")
