@@ -45,11 +45,11 @@ def skipThisClass(skips, clazz):
 
     return False
 
-def computeMetrics(v1, v2, pkg):
+def computeMetrics(v1, v2, pkg, excludeListFiles=None):
     old = smali.SmaliProject.SmaliProject()
-    old.parseFolder(v1, pkg)
+    old.parseFolder(v1, pkg, excludeListFiles)
     new = smali.SmaliProject.SmaliProject()
-    new.parseFolder(v2, pkg)
+    new.parseFolder(v2, pkg, excludeListFiles)
 
     E, R, C = 0, 0, 0
     MA, MD, MC = 0, 0, 0
@@ -113,10 +113,24 @@ if __name__ == '__main__':
                         help='Show metrics details')
     parser.add_argument('--classes', type=str, nargs='*',
                         help='Include only these classes')
+    parser.add_argument('--allclasses', '-A', action='store_true',
+                        help='Includes all classes, even ones outsite project package')
+    parser.add_argument('--exclude-lists', '-e', type=str, nargs='*',
+                        help='Files containing exclude lits')
+
 
     args = parser.parse_args()
 
-    oldclasses,newclasses,E,R,C,MA,MD,MC,FA,FD,FC,CA,CD,CC = computeMetrics(args.smaliv1, args.smaliv2, args.pkg)
+    pkg = args.pkg
+    if args.allclasses:
+        if args.verbose:
+            print("Including ALL classes")
+        pkg = None
+
+    if args.verbose and args.exclude_lists:
+        print("Ignoring classes includes in these files: %s"%args.exclude_lists)
+
+    oldclasses,newclasses,E,R,C,MA,MD,MC,FA,FD,FC,CA,CD,CC = computeMetrics(args.smaliv1, args.smaliv2, pkg, args.exclude_lists)
 
     if args.verbose:
         print("v0 has %d classes, v1 has %d classes."%(oldclasses, newclasses))

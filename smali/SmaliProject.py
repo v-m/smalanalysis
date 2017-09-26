@@ -11,7 +11,7 @@ from smali.SmaliObject import SmaliClass, SmaliField, SmaliAnnotation, SmaliMeth
 
 class MATCHERS:
     obj = "(\\[*(L[a-zA-Z0-9/_$\\-]+;|Z|B|S|C|I|J|F|D|V))"
-    method = re.compile("\\.method( [a-z \\-]+?)?( [a-zA-Z0-9<>_$\\-]+)?\\((.*)\\)(.*)")
+    method = re.compile("\\.method( [a-z \\-]+?)*( [a-zA-Z0-9<>_$\\-]+)?\\((.*)\\)(.*)")
     method_param = re.compile("%s"%obj)
     field_init = re.compile("%s( = .*)"%obj)
     fields = re.compile("\\.field( [a-z ]+)*( [a-zA-Z0-9_$\\-]*)+?:(.*)")
@@ -27,7 +27,41 @@ class SmaliProject(object):
         self.classes.append(c)
 
     @staticmethod
-    def parseFolderLoop(f, target, package = None, root = None):
+    def shouldAnalyzeThisClass(classname, skips=None):
+        if skips is not None:
+            for skip in skips:
+                if classname.startswith(skip):
+                    return False
+        return True
+
+    @staticmethod
+    def isClassInPackage(classname, pkgnames=None):
+        for aPkg in pkgnames:
+            if classname.startswith(aPkg):
+                return True
+
+        return False
+
+    @staticmethod
+    def loadSkipList(fileslist):
+        skips = set()
+
+        for f in fileslist:
+            skips.union(SmaliProject.loadSkipListFromFile(fileslist))
+
+        return skips
+
+    @staticmethod
+    def loadSkipListFromFile(file):
+        skips = set()
+
+        for entry in open(file, 'r'):
+            skips.add(entry.strip())
+
+        return skips
+
+    @staticmethod
+    def parseFolderLoop(f, target, package = None, root = None, skips = None):
         if f[-1] == '/':
             f = f[:-1]
 
@@ -38,14 +72,19 @@ class SmaliProject(object):
             fullpath = '%s%c%s' % (f, os.sep, ff)
 
             if os.path.isdir(fullpath):
-                SmaliProject.parseFolderLoop(fullpath, target, package, root)
+                SmaliProject.parseFolderLoop(fullpath, target, package, root, skips)
             elif fullpath.endswith('.smali'):
                 if package is None or package.replace('.', '/') in fullpath:
                     if not MATCHERS.ressource_classes.match(ff):
-                        target.addClass(SmaliProject.parseClass(fullpath))
+                        if skips is None or SmaliProject.shouldAnalyzeThisClass(fullpath, skips):
+                            target.addClass(SmaliProject.parseClass(fullpath))
 
-    def parseFolder(self, folder, package = None):
-        SmaliProject.parseFolderLoop(folder, self, package)
+    def parseFolder(self, folder, package = None, skiplists = None):
+        skips = None
+        if skiplists is not None:
+            for s in skiplists:
+                skips = SmaliProject.loadSkipListFromFile(s)
+        SmaliProject.parseFolderLoop(folder, self, package, skips)
 
     def searchClass(self, clazzName):
         for c in self.classes:
@@ -182,8 +221,14 @@ class SmaliProject(object):
                 matched = MATCHERS.method.match(line)
                 if matched is not None:
                     # Well this is a method...
-                    modifiers = matched.group(1).strip().split(' ') if matched.group(1) is not None else None
+                    modifiers = None
                     name = matched.group(2)
+                    if name is None:
+                        name = matched.group(1)
+                    else:
+                        modifiers = matched.group(1).strip().split(' ') if matched.group(1) is not None else None
+
+                    name = name.strip()
                     parameters = MATCHERS.method_param.findall(matched.group(3))
                     returnval = matched.group(4)
 
