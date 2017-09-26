@@ -45,11 +45,11 @@ def skipThisClass(skips, clazz):
 
     return False
 
-def computeMetrics(v1, v2, pkg, excludeListFiles=None):
+def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None):
     old = smali.SmaliProject.SmaliProject()
-    old.parseFolder(v1, pkg, excludeListFiles)
+    old.parseFolder(v1, pkg, excludeListFiles, includeListFiles)
     new = smali.SmaliProject.SmaliProject()
-    new.parseFolder(v2, pkg, excludeListFiles)
+    new.parseFolder(v2, pkg, excludeListFiles, includeListFiles)
 
     E, R, C = 0, 0, 0
     MA, MD, MC = 0, 0, 0
@@ -59,10 +59,6 @@ def computeMetrics(v1, v2, pkg, excludeListFiles=None):
     r = old.differences(new, [])
 
     for rr in r:
-        if args.classes is not None:
-            if skipThisClass(args.classes, rr):
-                continue
-
         if rr[1] is None:
             # Class change level here...
             if rr[0][1] is None:
@@ -111,26 +107,26 @@ if __name__ == '__main__':
                         help='The app package name')
     parser.add_argument('--verbose', '-v', action='store_true',
                         help='Show metrics details')
-    parser.add_argument('--classes', type=str, nargs='*',
-                        help='Include only these classes')
-    parser.add_argument('--allclasses', '-A', action='store_true',
-                        help='Includes all classes, even ones outsite project package')
+    parser.add_argument('--onlyapppackage', '-P', action='store_true',
+                        help='Includes only classes in the app package')
     parser.add_argument('--exclude-lists', '-e', type=str, nargs='*',
-                        help='Files containing exclude lits')
+                        help='Files containing excluded lits')
+    parser.add_argument('--include-lists', '-i', type=str, nargs='*',
+                        help='Files containing included lits')
 
 
     args = parser.parse_args()
 
-    pkg = args.pkg
-    if args.allclasses:
+    pkg = None
+    if args.onlyapppackage:
+        pkg = args.pkg
         if args.verbose:
-            print("Including ALL classes")
-        pkg = None
+            print("Including classes only in %s"%pkg)
 
     if args.verbose and args.exclude_lists:
         print("Ignoring classes includes in these files: %s"%args.exclude_lists)
 
-    oldclasses,newclasses,E,R,C,MA,MD,MC,FA,FD,FC,CA,CD,CC = computeMetrics(args.smaliv1, args.smaliv2, pkg, args.exclude_lists)
+    oldclasses,newclasses,E,R,C,MA,MD,MC,FA,FD,FC,CA,CD,CC = computeMetrics(args.smaliv1, args.smaliv2, pkg, args.exclude_lists, args.include_lists)
 
     if args.verbose:
         print("v0 has %d classes, v1 has %d classes."%(oldclasses, newclasses))
