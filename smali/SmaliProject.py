@@ -44,33 +44,25 @@ class SmaliProject(object):
         return default
 
     @staticmethod
-    def isClassInPackage(classname, pkgnames=None):
-        for aPkg in pkgnames:
-            if classname.startswith(aPkg):
-                return True
-
-        return False
-
-    @staticmethod
-    def loadSkipList(fileslist):
-        skips = set()
+    def loadRulesList(fileslist):
+        rules = set()
 
         if type(fileslist) == str:
             fileslist = [fileslist]
 
         for f in fileslist:
-            skips = skips.union(SmaliProject.loadSkipListFromFile(f))
+            rules = rules.union(SmaliProject.loadRulesListFromFile(f))
 
-        return skips
+        return rules
 
     @staticmethod
-    def loadSkipListFromFile(file):
-        skips = set()
+    def loadRulesListFromFile(file):
+        rules = set()
 
         for entry in open(file, 'r'):
-            skips.add(entry.strip())
+            rules.add(entry.strip())
 
-        return skips
+        return rules
 
     @staticmethod
     def parseFolderLoop(f, target, package = None, root = None, skips = None, includes = None):
@@ -103,11 +95,13 @@ class SmaliProject(object):
         skips = None
         includes = None
         if skiplists is not None:
+            skips = set()
             for s in skiplists:
-                skips = SmaliProject.loadSkipListFromFile(s)
+                skips = skips.union(SmaliProject.loadRulesListFromFile(s))
         if includelist is not None:
+            includes = set()
             for s in includelist:
-                includes = SmaliProject.loadSkipListFromFile(s)
+                includes = includes.union(SmaliProject.loadRulesListFromFile(s))
         SmaliProject.parseFolderLoop(folder, self, package, skips=skips, includes=includes)
 
     def searchClass(self, clazzName):

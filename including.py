@@ -58,14 +58,14 @@ if __name__ == '__main__':
 
     if args.exclude_lists is not None:
         for ff in args.exclude_lists:
-            skips[ff] = smali.SmaliProject.SmaliProject.loadSkipList(ff)
+            skips[ff] = smali.SmaliProject.SmaliProject.loadRulesList(ff)
 
 
     includes = dict()
 
     if args.include_lists is not None:
         for ff in args.include_lists:
-            includes[ff] = smali.SmaliProject.SmaliProject.loadSkipList(ff)
+            includes[ff] = smali.SmaliProject.SmaliProject.loadRulesList(ff)
 
     for c in all.classes:
         ret = pattern.match(c.name)
