@@ -50,6 +50,7 @@ if __name__ == '__main__':
     all.parseFolder(args.smali, None, None, None)
 
     pattern = re.compile('L(.*)/(.*);')
+    nopakgpattern = re.compile('L([^/]*);')
 
     pakgs = dict()
     status = dict()
@@ -69,7 +70,13 @@ if __name__ == '__main__':
 
     for c in all.classes:
         ret = pattern.match(c.name)
-        pakg, clazz = ret.group(1).replace('/', '.'), ret.group(2)
+
+        if ret is None:
+            #Root package!
+            ret = nopakgpattern.match(c.name)
+            pakg, clazz = None, ret.group(1)
+        else:
+            pakg, clazz = ret.group(1).replace('/', '.'), ret.group(2)
 
         if pakg not in pakgs:
             pakgs[pakg] = set()
