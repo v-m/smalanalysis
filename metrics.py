@@ -95,7 +95,7 @@ def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None):
             elif rrr[0] is not None and rrr[0] is not None and rrr[0].isMethod():
                 MC += 1
 
-    return len(old.classes), len(new.classes), E,R,C,CA,CD,CC,MA,MD,MC,FA,FD,FC
+    return len(old.classes), len(new.classes),E,R,C,CA,CD,CC,MA,MD,MC,FA,FD,FC
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Compute evolution metrics between two smali versions.')
@@ -126,7 +126,7 @@ if __name__ == '__main__':
     if args.verbose and args.exclude_lists:
         print("Ignoring classes includes in these files: %s"%args.exclude_lists)
 
-    oldclasses,newclasses,E,R,C,MA,MD,MC,FA,FD,FC,CA,CD,CC = computeMetrics(args.smaliv1, args.smaliv2, pkg, args.exclude_lists, args.include_lists)
+    oldclasses,newclasses,E,R,C,CA,CD,CC,MA,MD,MC,FA,FD,FC = computeMetrics(args.smaliv1, args.smaliv2, pkg, args.exclude_lists, args.include_lists)
 
     if args.verbose:
         print("v0 has %d classes, v1 has %d classes."%(oldclasses, newclasses))
@@ -135,4 +135,4 @@ if __name__ == '__main__':
         print("Methods - Added: %5d, Changed: %5d, Deleted: %5d." % (MA, MC, MD))
         print(" Fields - Added: %5d, Changed: %5d, Deleted: %5d." % (FA, FC, FD))
     else:
-        print("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d"%(oldclasses, newclasses, E,R,C, MA,MD,MC, FA,FD,FC, CA,CD,CC))
+        print("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d"%(oldclasses, newclasses,E,R,C,MA,MD,MC,FA,FD,FC,CA,CD,CC))
