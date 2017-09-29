@@ -256,6 +256,9 @@ class SmaliWithLines(SmaliAnnotableModifiable):
     def getCleanLines(self):
         return SmaliWithLines.cleanLines(self.lines)
 
+    def moreThanNInstruction(self, n):
+        return len(self.getCleanLines()) > n
+
     def areSourceCodeSimilars(self, other, considerRReferences = False):
         slines = self.getCleanLines()
         olines = other.getCleanLines()
@@ -543,7 +546,7 @@ class SmaliClass(SmaliAnnotableModifiable):
             op = None
 
             for m in mother:
-                if meth.areSourceCodeSimilars(m):
+                if meth.areSourceCodeSimilars(m) and meth.moreThanNInstruction(1):
                     op = [m, ChangesTypes.RENAMED_METHOD]
 
                 if op is not None:
