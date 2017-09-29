@@ -54,7 +54,8 @@ def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None):
     E, R, C = 0, 0, 0
     MA, MD, MC = 0, 0, 0
     FA, FD, FC = 0, 0, 0
-    CA, CD, CC = 0, 0, 0
+    CA, CD = 0, 0
+    changedclass = set()
 
     r = old.differences(new, [])
 
@@ -68,7 +69,10 @@ def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None):
                 CA += 1
                 continue
 
-        CC += 1
+        if len(rr[1]) == 0:
+            continue
+
+        changedclass.add(rr[0][0].name)
 
         l = rr[1]
 
@@ -95,6 +99,7 @@ def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None):
             elif rrr[0] is not None and rrr[0] is not None and rrr[0].isMethod():
                 MC += 1
 
+    CC = len(changedclass)
     return len(old.classes), len(new.classes),E,R,C,CA,CD,CC,MA,MD,MC,FA,FD,FC
 
 if __name__ == '__main__':
