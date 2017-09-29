@@ -523,8 +523,8 @@ class SmaliClass(SmaliAnnotableModifiable):
                 if len(diff) == 1:
                     if diff[0] == NOT_SAME_SOURCECODE_LINES:
                         op = [m, ChangesTypes.REVISED_METHOD]
-                    elif diff[0] == NOT_SAME_NAME:
-                        op = [m, ChangesTypes.REFACTORED_METHOD]
+                    elif diff[0] == NOT_SAME_NAME and meth.moreThanNInstruction(1):
+                        op = [m, ChangesTypes.RENAMED_METHOD]
                 if op is None and meth.name == m.name:
                     op = [m, ChangesTypes.SAME_NAME]
 
