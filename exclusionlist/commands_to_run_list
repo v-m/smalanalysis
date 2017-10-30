@@ -1,0 +1,7 @@
+If you want to exclude obfuscation.txt, you should run includinglist.txt at last. This including list is specific for 911 versions of top apps. 
+Merge.txt combines common list and ad list. 
+
+sh metrics.sh apk1 apk2 -e exclusionlist.txt obfuscation.txt Merge.txt -i includinglist.txt
+
+More genereal case without obfuscation libraries:
+sh metrics.sh apk1 apk2 -e exclusionlist.txt Merge.txt 
