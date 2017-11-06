@@ -52,8 +52,8 @@ def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None):
     new.parseFolder(v2, pkg, excludeListFiles, includeListFiles)
 
     E, R, C = 0, 0, 0
-    MA, MD, MC = 0, 0, 0
-    FA, FD, FC = 0, 0, 0
+    MA, MD, MC, MR = 0, 0, 0, 0
+    FA, FD, FC, FR = 0, 0, 0, 0
     CA, CD = 0, 0
     changedclass = set()
 
@@ -90,17 +90,23 @@ def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None):
                 FD += 1
             elif rrr[1] is not None and rrr[1].isField() and rrr[0] is None:
                 FA += 1
-            elif rrr[0] is not None and rrr[0] is not None and rrr[0].isField():
-                FC += 1
+            elif rrr[0] is not None and rrr[1] is not None and rrr[0].isField():
+                if len(rrr) > 3 and len(rrr[3]) == 1 and rrr[3][0] == SmaliObject.NOT_SAME_NAME:
+                    FR += 1
+                else:
+                    FC += 1
             elif rrr[0] is not None and rrr[0].isMethod() and rrr[1] is None:
                 MD += 1
             elif rrr[1] is not None and rrr[1].isMethod() and rrr[0] is None:
                 MA += 1
-            elif rrr[0] is not None and rrr[0] is not None and rrr[0].isMethod():
-                MC += 1
+            elif rrr[0] is not None and rrr[1] is not None and rrr[0].isMethod():
+                if rrr[2] == ChangesTypes.RENAMED_METHOD:
+                    MR += 1
+                else:
+                    MC += 1
 
     CC = len(changedclass)
-    return len(old.classes), len(new.classes),E,R,C,CA,CD,CC,MA,MD,MC,FA,FD,FC
+    return len(old.classes), len(new.classes),E,R,C,CA,CD,CC,MA,MD,MC,MR,FA,FD,FC,FR
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Compute evolution metrics between two smali versions.')
@@ -131,13 +137,13 @@ if __name__ == '__main__':
     if args.verbose and args.exclude_lists:
         print("Ignoring classes includes in these files: %s"%args.exclude_lists)
 
-    oldclasses,newclasses,E,R,C,CA,CD,CC,MA,MD,MC,FA,FD,FC = computeMetrics(args.smaliv1, args.smaliv2, pkg, args.exclude_lists, args.include_lists)
+    oldclasses,newclasses,E,R,C,CA,CD,CC,MA,MD,MC,MR,FA,FD,FC,FR = computeMetrics(args.smaliv1, args.smaliv2, pkg, args.exclude_lists, args.include_lists)
 
     if args.verbose:
         print("v0 has %d classes, v1 has %d classes."%(oldclasses, newclasses))
-        print("E = %d. R = %d. C = %d" % (E, R, C))
+        print("E = %d. R = %d. C = %d." % (E, R, C))
         print("Classes - Added: %5d, Changed: %5d, Deleted: %5d." % (CA, CC, CD))
-        print("Methods - Added: %5d, Changed: %5d, Deleted: %5d." % (MA, MC, MD))
-        print(" Fields - Added: %5d, Changed: %5d, Deleted: %5d." % (FA, FC, FD))
+        print("Methods - Added: %5d, Changed: %5d, Renamed: %5d, Deleted: %5d." % (MA, MC, MR, MD))
+        print(" Fields - Added: %5d, Changed: %5d, Renamed: %5d, Deleted: %5d." % (FA, FC, FR, FD))
     else:
-        print("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d"%(oldclasses, newclasses,E,R,C,MA,MD,MC,FA,FD,FC,CA,CD,CC))
+        print("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d"%(oldclasses, newclasses,E,R,C,MA,MD,MC,MR,FA,FD,FC,FR,CA,CD,CC))
