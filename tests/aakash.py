@@ -38,8 +38,8 @@ class TestUM(unittest.TestCase):
 
     def test_v1v2(self):
         pkg = 'com.example.aakash.versiona'
-        v1 = 'Version1.smali'
-        v2 = 'Version2.smali'
+        v1 = 'apks/Version1.smali'
+        v2 = 'apks/Version2.smali'
 
         TestUM.prepare(v1)
         TestUM.prepare(v2)
@@ -62,8 +62,8 @@ class TestUM(unittest.TestCase):
 
     def test_v2v3(self):
         pkg = 'com.example.aakash.versiona'
-        v2 = 'Version2.smali'
-        v3 = 'Version3.smali'
+        v2 = 'apks/Version2.smali'
+        v3 = 'apks/Version3.smali'
 
         TestUM.prepare(v2)
         TestUM.prepare(v3)
@@ -86,8 +86,8 @@ class TestUM(unittest.TestCase):
 
     def test_v3v4(self):
         pkg = 'com.example.aakash.versiona'
-        v3 = 'Version3.smali'
-        v4 = 'Version4.smali'
+        v3 = 'apks/Version3.smali'
+        v4 = 'apks/Version4.smali'
 
         TestUM.prepare(v3)
         TestUM.prepare(v4)
@@ -110,8 +110,8 @@ class TestUM(unittest.TestCase):
 
     def test_v4v5(self):
         pkg = 'com.example.aakash.versiona'
-        v4 = 'Version4.smali'
-        v5 = 'Version5.smali'
+        v4 = 'apks/Version4.smali'
+        v5 = 'apks/Version5.smali'
 
         TestUM.prepare(v4)
         TestUM.prepare(v5)
@@ -134,8 +134,8 @@ class TestUM(unittest.TestCase):
 
     def test_v5v6(self):
         pkg = 'com.example.aakash.versiona'
-        v5 = 'Version5.smali'
-        v6 = 'Version6.smali'
+        v5 = 'apks/Version5.smali'
+        v6 = 'apks/Version6.smali'
 
         TestUM.prepare(v5)
         TestUM.prepare(v6)
@@ -158,8 +158,8 @@ class TestUM(unittest.TestCase):
 
     def test_v6v7(self):
         pkg = 'com.example.aakash.versiona'
-        v6 = 'Version6.smali'
-        v7 = 'Version7.smali'
+        v6 = 'apks/Version6.smali'
+        v7 = 'apks/Version7.smali'
 
         TestUM.prepare(v6)
         TestUM.prepare(v7)
@@ -182,8 +182,8 @@ class TestUM(unittest.TestCase):
 
     def test_v7v8(self):
         pkg = 'com.example.aakash.versiona'
-        v7 = 'Version7.smali'
-        v8 = 'Version8.smali'
+        v7 = 'apks/Version7.smali'
+        v8 = 'apks/Version8.smali'
 
         TestUM.prepare(v7)
         TestUM.prepare(v8)
@@ -206,8 +206,8 @@ class TestUM(unittest.TestCase):
 
     def test_v8v9(self):
         pkg = 'com.example.aakash.versiona'
-        v8 = 'Version8.smali'
-        v9 = 'Version9.smali'
+        v8 = 'apks/Version8.smali'
+        v9 = 'apks/Version9.smali'
 
         TestUM.prepare(v8)
         TestUM.prepare(v9)
@@ -254,8 +254,8 @@ class TestUM(unittest.TestCase):
 
     def test_vavb(self):
         pkg = 'com.example.aakash.versiona'
-        va = 'Versiona.smali'
-        vb = 'Versionb.smali'
+        va = 'apks/Versiona.smali'
+        vb = 'apks/Versionb.smali'
 
         TestUM.prepare(va)
         TestUM.prepare(vb)
@@ -278,8 +278,8 @@ class TestUM(unittest.TestCase):
 
     def test_vbvc(self):
         pkg = 'com.example.aakash.versiona'
-        vb = 'Versionb.smali'
-        vc = 'Versionc.smali'
+        vb = 'apks/Versionb.smali'
+        vc = 'apks/Versionc.smali'
 
         TestUM.prepare(vb)
         TestUM.prepare(vc)
@@ -302,8 +302,8 @@ class TestUM(unittest.TestCase):
 
     def test_vcvd(self):
         pkg = 'com.example.aakash.versiona'
-        vc = 'Versionc.smali'
-        vd = 'Versiond.smali'
+        vc = 'apks/Versionc.smali'
+        vd = 'apks/Versiond.smali'
 
         TestUM.prepare(vc)
         TestUM.prepare(vd)
@@ -326,8 +326,8 @@ class TestUM(unittest.TestCase):
 
     def test_vave(self):
         pkg = 'com.example.aakash.versiona'
-        va = 'Versiona.smali'
-        ve = 'Versione.smali'
+        va = 'apks/Versiona.smali'
+        ve = 'apks/Versione.smali'
 
         TestUM.prepare(va)
         TestUM.prepare(ve)
@@ -350,8 +350,8 @@ class TestUM(unittest.TestCase):
 
     def test_vevf(self):
         pkg = 'com.example.aakash.versiona'
-        ve = 'Versione.smali'
-        vf = 'Versionf.smali'
+        ve = 'apks/Versione.smali'
+        vf = 'apks/Versionf.smali'
 
         TestUM.prepare(ve)
         TestUM.prepare(vf)
@@ -374,8 +374,8 @@ class TestUM(unittest.TestCase):
 
     def test_vfvg(self):
         pkg = 'com.example.aakash.versiona'
-        vf = 'Versionf.smali'
-        vg = 'Versiong.smali'
+        vf = 'apks/Versionf.smali'
+        vg = 'apks/Versiong.smali'
 
         TestUM.prepare(vf)
         TestUM.prepare(vg)
@@ -398,8 +398,8 @@ class TestUM(unittest.TestCase):
 
     def test_vavh(self):
         pkg = 'com.example.aakash.versiona'
-        va = 'Versiona.smali'
-        vh = 'Versionh.smali'
+        va = 'apks/Versiona.smali'
+        vh = 'apks/Versionh.smali'
 
         TestUM.prepare(va)
         TestUM.prepare(vh)
@@ -422,8 +422,8 @@ class TestUM(unittest.TestCase):
 
     def test_vhvi(self):
         pkg = 'com.example.aakash.versiona'
-        vh = 'Versionh.smali'
-        vi = 'Versioni.smali'
+        vh = 'apks/Versionh.smali'
+        vi = 'apks/Versioni.smali'
 
         TestUM.prepare(vh)
         TestUM.prepare(vi)
@@ -446,8 +446,8 @@ class TestUM(unittest.TestCase):
 
     def test_vavj(self):
         pkg = 'com.example.aakash.versiona'
-        va = 'Versiona.smali'
-        vj = 'Versionj.smali'
+        va = 'apks/Versiona.smali'
+        vj = 'apks/Versionj.smali'
 
         TestUM.prepare(va)
         TestUM.prepare(vj)
@@ -470,8 +470,8 @@ class TestUM(unittest.TestCase):
 
     def test_vjvk(self):
         pkg = 'com.example.aakash.versiona'
-        vj = 'Versionj.smali'
-        vk = 'Versionk.smali'
+        vj = 'apks/Versionj.smali'
+        vk = 'apks/Versionk.smali'
 
         TestUM.prepare(vj)
         TestUM.prepare(vk)
@@ -494,8 +494,8 @@ class TestUM(unittest.TestCase):
 
     def test_vkvl(self):
         pkg = 'com.example.aakash.versiona'
-        vk = 'Versionk.smali'
-        vl = 'Versionl.smali'
+        vk = 'apks/Versionk.smali'
+        vl = 'apks/Versionl.smali'
 
         TestUM.prepare(vk)
         TestUM.prepare(vl)
@@ -518,8 +518,8 @@ class TestUM(unittest.TestCase):
 
     def test_vavm(self):
         pkg = 'com.example.aakash.versiona'
-        va = 'Versiona.smali'
-        vm = 'Versionm.smali'
+        va = 'apks/Versiona.smali'
+        vm = 'apks/Versionm.smali'
 
         TestUM.prepare(va)
         TestUM.prepare(vm)
@@ -542,8 +542,8 @@ class TestUM(unittest.TestCase):
 
     def test_vmvn(self):
         pkg = 'com.example.aakash.versiona'
-        vm = 'Versionm.smali'
-        vn = 'Versionn.smali'
+        vm = 'apks/Versionm.smali'
+        vn = 'apks/Versionn.smali'
 
         TestUM.prepare(vm)
         TestUM.prepare(vn)
@@ -566,8 +566,8 @@ class TestUM(unittest.TestCase):
 
     def test_vnvo(self):
         pkg = 'com.example.aakash.versiona'
-        vn = 'Versionn.smali'
-        vo = 'Versiono.smali'
+        vn = 'apks/Versionn.smali'
+        vo = 'apks/Versiono.smali'
 
         TestUM.prepare(vn)
         TestUM.prepare(vo)
@@ -590,8 +590,8 @@ class TestUM(unittest.TestCase):
 
     def test_vavp(self):
         pkg = 'com.example.aakash.versiona'
-        va = 'Versiona.smali'
-        vp = 'Versionp.smali'
+        va = 'apks/Versiona.smali'
+        vp = 'apks/Versionp.smali'
 
         TestUM.prepare(va)
         TestUM.prepare(vp)
