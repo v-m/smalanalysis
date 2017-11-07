@@ -264,9 +264,9 @@ class SmaliProject(object):
                     matched2 = MATCHERS.field_init.match(type)
                     if matched2 is not None:
                         type = matched2.group(1)
-                        init = matched2.group(2)[3:]
+                        init = matched2.group(3)[3:]
 
-                    currentobj = SmaliField(matched.group(2), type, matched.group(1).strip().split(' ') if matched.group(1) is not None else None, init, clazz)
+                    currentobj = SmaliField(matched.group(2).strip(), type, matched.group(1).strip().split(' ') if matched.group(1) is not None else None, init, clazz)
                     clazz.addField(currentobj)
                     continue
 

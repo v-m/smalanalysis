@@ -444,6 +444,10 @@ class SmaliClass(SmaliAnnotableModifiable):
     def setSuper(self, zuper):
         self.zuper = zuper
 
+
+    def getSuper(self):
+        return self.zuper[1:-1]
+
     def addImplementedInterface(self, ifce):
         self.implements.add(ifce)
 
