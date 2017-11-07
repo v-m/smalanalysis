@@ -11,7 +11,7 @@ from smali.SmaliObject import SmaliClass, SmaliField, SmaliAnnotation, SmaliMeth
 
 class MATCHERS:
     obj = "(\\[*(L[a-zA-Z0-9/_$\\-]+;|Z|B|S|C|I|J|F|D|V))"
-    method = re.compile("\\.method( [a-z \\-]+?)*( [a-zA-Z0-9<>_$\\-]+)?\\((.*)\\)(.*)")
+    method = re.compile("\\.method( [a-z \\-]+?)*( [a-zA-Z0-9<>_$\\-]+){1}\\((.*)\\)(.*)")
     method_param = re.compile("%s"%obj)
     field_init = re.compile("%s( = .*)"%obj)
     fields = re.compile("\\.field( [a-z ]+)*( [a-zA-Z0-9_$\\-]*)+?:(.*)")
@@ -247,7 +247,8 @@ class SmaliProject(object):
                         modifiers = matched.group(1).strip().split(' ') if matched.group(1) is not None else None
 
                     name = name.strip()
-                    parameters = MATCHERS.method_param.findall(matched.group(3))
+                    parameters = [it[0] for it in MATCHERS.method_param.findall(matched.group(3)) ]
+
                     returnval = matched.group(4)
 
                     readingmethod = SmaliMethod(name, parameters, returnval, modifiers, clazz)

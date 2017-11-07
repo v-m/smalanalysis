@@ -1,6 +1,6 @@
 # Smali Objects
 # Author: Vincenzo Musco (http://www.vmusco.com)
-# Creation date: 2017-09-15
+# Date: 2017-09-15
 import re
 
 from smali import ComparisonIgnores, ChangesTypes
@@ -26,18 +26,14 @@ methodcallpattern = re.compile("(.*)->(.*):(.*)")
 RREFERENCE_PATTERN = re.compile('^const v[0-9]{1,2}, (0x[0-9a-f]{8})$')
 
 class_ref_pattern = re.compile('L(.*?);')
-method_access_pattern = re.compile('L->(.*?)\\)')
-field_access_pattern = re.compile('L->(.*?):')
+method_access_pattern = re.compile('L(.*?)->(.*?)\\)')
+field_access_pattern = re.compile('L(.*?)->(.*?):')
 jumps_pattern = re.compile(':[a-zA-Z0-9_\\-]+')
 local_registers_pattern = re.compile('v[0-9]+')
 param_registers_pattern = re.compile('p[0-9]+')
 
 def compareStringSets(m1, m2):
-    for a in m1:
-        if a not in m2:
-            return False
-
-    return True
+    return len(m1 ^ m2) == 0
 
 def compareListsSameposition(l1, l2):
     if len(l1) != len(l2):
@@ -253,6 +249,21 @@ class SmaliWithLines(SmaliAnnotableModifiable):
                 slines.append(line)
         return slines
 
+
+    @staticmethod
+    def cleanIdentityLines(lines):
+        slines = list()
+        for line in lines:
+            if SmaliWithLines.keepThisLine(line):
+                line = field_access_pattern.sub(r'\1->///FIELD///:', line)
+                line = method_access_pattern.sub(r'\1->///METHOD///:', line)
+                slines.append(line)
+        return slines
+
+
+    def getCleanIdentityLines(self):
+        return SmaliWithLines.cleanIdentityLines(self.lines)
+
     def getCleanLines(self):
         return SmaliWithLines.cleanLines(self.lines)
 
@@ -260,8 +271,8 @@ class SmaliWithLines(SmaliAnnotableModifiable):
         return len(self.getCleanLines()) > n
 
     def areSourceCodeSimilars(self, other, considerRReferences = False):
-        slines = self.getCleanLines()
-        olines = other.getCleanLines()
+        slines = self.getCleanIdentityLines()
+        olines = other.getCleanIdentityLines()
 
         if not considerRReferences:
             slines = SmaliMethod.clearRReferences(slines)
@@ -471,7 +482,7 @@ class SmaliClass(SmaliAnnotableModifiable):
                 fret.append(diff)
 
         if ComparisonIgnores.CLASS_FIELDS not in ignores:
-            ret = self.fieldsComparison(other, ignores)
+            ret = self.fieldsComparison(other, ignores, fret)
 
             for diff in ret[1]:
                 fret.append(diff)
@@ -563,7 +574,7 @@ class SmaliClass(SmaliAnnotableModifiable):
 
         return sames, diffs
 
-    def fieldsComparison(self, other, ignores):
+    def fieldsComparison(self, other, ignores, ret):
         fself = list(self.fields)
         fother = list(other.fields)
         mttemp = list()
@@ -593,7 +604,7 @@ class SmaliClass(SmaliAnnotableModifiable):
 
             found = False
             for f in fother:
-                if len(field.differences(f, ComparisonIgnores.FIELD_INIT)) == 0 or f.name == field.name:
+                if len(field.differences(f, ComparisonIgnores.FIELD_INIT)) == 0 or (f.name == field.name and 'static' not in (f.modifiers ^ field.modifiers)):
                     diffs.append([field, f, ChangesTypes.FIELD_CHANGED, field.differences(f, [])])
                     found = True
                     fother.remove(f)
@@ -601,7 +612,7 @@ class SmaliClass(SmaliAnnotableModifiable):
 
             if not found:
                 whereIsUsed = self.whereIsFieldUsed(field)
-                f = self.tryToDetectFieldRenaming(field, whereIsUsed, other, fother)
+                f = self.tryToDetectFieldRenamingWithComputedSets(field, whereIsUsed, other, fother, ret)
 
                 if f is not None:
                     diffs.append([field, f, ChangesTypes.FIELD_CHANGED, field.differences(f, [])])
@@ -640,6 +651,45 @@ class SmaliClass(SmaliAnnotableModifiable):
         for usage in whereIsUsed:
             usageline = usage[1]
             simeth = newClass.findSimilarMethod(usage[0])
+
+            if simeth is not None:
+                line1 = usage[0].getCleanLines()[usageline]
+
+                line2content = simeth.getCleanLines()
+
+                if len(line2content) > usageline:
+                    before = line1[0:line1.index(fieldCall)]
+                    after = line1[len(before) + len(fieldCall):]
+
+                    line2 = simeth.getCleanLines()[usageline]
+                    newCandidate = line2.replace(before, '').replace(after, '')
+
+                    for f in nfields:
+                        if SmaliClass.matchFieldAndFieldCall(f, newCandidate):
+                            return f
+
+        return None
+
+    def tryToDetectFieldRenamingWithComputedSets(self, field, whereIsUsed, newClass, nfields, ret):
+        fieldCall = "%s->%s:%s"%(self.name.strip(), field.name.strip(), field.type.strip())
+
+        for usage in whereIsUsed:
+            usageline = usage[1]
+
+            simeth = None
+
+            for ent in ret:
+
+                if ent[0] is not None and ent[1] is not None:
+                    if id(ent[0]) == id(usage[0]):
+                        simeth = ent[1]
+                        break
+                    elif id(ent[1]) == id(usage[0]):
+                        simeth = ent[0]
+                        break
+
+            if simeth is None:
+                simeth = newClass.findSimilarMethod(usage[0])
 
             if simeth is not None:
                 line1 = usage[0].getCleanLines()[usageline]
