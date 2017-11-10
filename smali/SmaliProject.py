@@ -7,7 +7,7 @@ import os
 
 import sys
 
-from smali.SmaliObject import SmaliClass, SmaliField, SmaliAnnotation, SmaliMethod, compareListsBoolean
+import smali.SmaliObject
 
 class MATCHERS:
     obj = "(\\[*(L[a-zA-Z0-9/_$\\-]+;|Z|B|S|C|I|J|F|D|V))"
@@ -17,14 +17,29 @@ class MATCHERS:
     fields = re.compile("\\.field( [a-z ]+)*( [a-zA-Z0-9_$\\-]*)+?:(.*)")
     clazz = re.compile("\\.class( [a-z ]+)*( [a-zA-Z][a-zA-Z0-9_\\-/$]*)+?;")
     annotation = re.compile("\\.annotation( [a-z ]+)*( L[a-zA-Z0-9_/$]*);")
-    ressource_classes = re.compile("R(\\$[a-z]+)*\\.smali")
+    ressource_classes = re.compile("^.*/R(\\$[a-z]+)?\\.smali$")
+    hex_ref = re.compile("0x[0-9abcdef]{2,}")
 
 class SmaliProject(object):
     def __init__(self):
         self.classes = []
+        self.ressources_id = set()
 
     def addClass(self, c):
         self.classes.append(c)
+
+    def parseRessource(self, f):
+        fp = open(f, 'r')
+        ctnt = fp.read()
+        fp.close()
+
+        for line in ctnt.split('\n'):
+            refs = MATCHERS.hex_ref.findall(line)
+
+            for r in refs:
+                self.ressources_id.add(r)
+
+        pass
 
     @staticmethod
     def shouldAnalyzeThisClass(classname, skips = None, includes = None, default = True):
@@ -82,14 +97,20 @@ class SmaliProject(object):
                 if package is not None and package.replace('.', '/') not in fullpath:
                     skip = True
 
-                if MATCHERS.ressource_classes.match(ff):
+                if MATCHERS.ressource_classes.match(fullpath):
+                    target.parseRessource(fullpath)
                     skip = True
 
                 if (skips is not None or includes is not None):
                     skip = not SmaliProject.shouldAnalyzeThisClass(fullpath, skips, includes, not skip)
 
+                if fullpath.endswith('/BuildConfig.smali'):
+                    skip = True
+
                 if not skip:
-                    target.addClass(SmaliProject.parseClass(fullpath))
+                    cls = SmaliProject.parseClass(fullpath)
+                    cls.parent = target
+                    target.addClass(cls)
 
     def parseFolder(self, folder, package = None, skiplists = None, includelist = None):
         skips = None
@@ -177,7 +198,7 @@ class SmaliProject(object):
     def parseClass(file):
         fp = open(file, 'r')
 
-        clazz = SmaliClass()
+        clazz = smali.SmaliObject.SmaliClass(None)
 
         # Class declaration
         ccontent = fp.read()
@@ -233,7 +254,7 @@ class SmaliProject(object):
                     modifiers = matched.group(1).strip().split(' ')
                     name = matched.group(2)
 
-                    readingannotation = SmaliAnnotation(name, modifiers)
+                    readingannotation = smali.SmaliObject.SmaliAnnotation(name, modifiers, clazz)
                     continue
 
                 matched = MATCHERS.method.match(line)
@@ -251,7 +272,7 @@ class SmaliProject(object):
 
                     returnval = matched.group(4)
 
-                    readingmethod = SmaliMethod(name, parameters, returnval, modifiers, clazz)
+                    readingmethod = smali.SmaliObject.SmaliMethod(name, parameters, returnval, modifiers, clazz)
                     currentobj = readingmethod
                     clazz.addMethod(readingmethod)
                     continue
@@ -266,7 +287,7 @@ class SmaliProject(object):
                         type = matched2.group(1)
                         init = matched2.group(3)[3:]
 
-                    currentobj = SmaliField(matched.group(2).strip(), type, matched.group(1).strip().split(' ') if matched.group(1) is not None else None, init, clazz)
+                    currentobj = smali.SmaliObject.SmaliField(matched.group(2).strip(), type, matched.group(1).strip().split(' ') if matched.group(1) is not None else None, init, clazz)
                     clazz.addField(currentobj)
                     continue
 
@@ -279,7 +300,9 @@ class SmaliProject(object):
         return clazz
 
     def parseAddClass(self, file):
-        self.addClass(SmaliProject.parseClass(file))
+        cls = SmaliProject.parseClass(file)
+        cls.parent = self
+        self.addClass(cls)
 
     def __eq__(self, other):
         return compareListsBoolean(self.classes, other.classes)

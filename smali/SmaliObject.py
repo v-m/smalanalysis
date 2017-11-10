@@ -4,6 +4,7 @@
 import re
 
 from smali import ComparisonIgnores, ChangesTypes
+import smali.SmaliProject
 
 NOT_SAME_NAME = 'NOT_SAME_NAME'
 NOT_SAME_RETURN_TYPE = 'NOT_SAME_RETURN_TYPE'
@@ -23,7 +24,7 @@ OTHER = 'OTHER'
 classnamepattern = re.compile("L(.*?)(\\$.+)*;")
 methodcallpattern = re.compile("(.*)->(.*):(.*)")
 
-RREFERENCE_PATTERN = re.compile('^const v[0-9]{1,2}, (0x[0-9a-f]{8})$')
+RREFERENCE_PATTERN = re.compile('^const [vp][0-9]{1,2}, (0x[0-9a-f]{5,})$')
 
 class_ref_pattern = re.compile('L(.*?);')
 method_access_pattern = re.compile('L(.*?)->(.*?)\\)')
@@ -144,9 +145,18 @@ def compareListsBoolean(l1, l2):
 
 
 class SmaliAnnotableModifiable(object):
-    def __init__(self):
+    def __init__(self, parent):
         self.annotations = []
         self.modifiers = set()
+        self.parent = parent
+
+    def getParentProjectIfAny(self):
+        trg = self.parent
+
+        while trg is not None and not isinstance(trg, smali.SmaliProject.SmaliProject):
+            trg = trg.parent
+
+        return trg
 
     def addAnnotation(self, a):
         self.annotations.append(a)
@@ -191,8 +201,8 @@ class SmaliAnnotableModifiable(object):
 
 
 class SmaliWithLines(SmaliAnnotableModifiable):
-    def __init__(self, name, modifiers):
-        SmaliAnnotableModifiable.__init__(self)
+    def __init__(self, name, modifiers, parent):
+        SmaliAnnotableModifiable.__init__(self, parent)
         self.name = name.strip()
         self.lines = list()
         self.addModifiersFromList(modifiers)
@@ -274,6 +284,32 @@ class SmaliWithLines(SmaliAnnotableModifiable):
         slines = self.getCleanIdentityLines()
         olines = other.getCleanIdentityLines()
 
+        '''
+        slinematches = []
+        olinematches = []
+
+        for lnumber in range(len(slines)):
+            if smali.SmaliProject.MATCHERS.hex_ref.match(slines[lnumber]):
+                slinematches.append(lnumber)
+
+        for lnumber in range(len(olines)):
+            if smali.SmaliProject.MATCHERS.hex_ref.match(olines[lnumber]):
+                olinematches.append(lnumber)
+
+        if len(slinematches) > 0 or len(olinematches) > 0:
+            if self.getParentProjectIfAny() is not None or other.getParentProjectIfAny() is not None:
+                for addr in self.getParentProjectIfAny().ressources_id:
+                    if self.getParentProjectIfAny():
+                        for lnumber in slinematches:
+                            if addr in slines[lnumber]:
+                                slines[lnumber] = slines[lnumber].replace(addr, '///RESS_REF///')
+
+                    if other.getParentProjectIfAny():
+                        for lnumber in olinematches:
+                            if addr in olines[lnumber]:
+                                olines[lnumber] = olines[lnumber].replace(addr, '///RESS_REF///')
+        '''
+
         if not considerRReferences:
             slines = SmaliMethod.clearRReferences(slines)
             olines = SmaliMethod.clearRReferences(olines)
@@ -301,12 +337,11 @@ class SmaliWithLines(SmaliAnnotableModifiable):
 
 class SmaliField(SmaliAnnotableModifiable):
     def __init__(self, name, type, modifiers, init, clazz):
-        super(SmaliField, self).__init__()
+        super(SmaliField, self).__init__(clazz)
         self.name = name
         self.type = type
         self.init = init
         self.addModifiersFromList(modifiers)
-        self.clazz = clazz
 
     def __eq__(self, other):
         if self.name == other.name and self.type == other.type and self.init == other.init:
@@ -339,10 +374,9 @@ class SmaliField(SmaliAnnotableModifiable):
 
 class SmaliMethod(SmaliWithLines):
     def __init__(self, name, params, ret, modifiers, clazz):
-        SmaliWithLines.__init__(self, name, modifiers)
+        SmaliWithLines.__init__(self, name, modifiers, clazz)
         self.params = params
         self.ret = ret
-        self.clazz = clazz
 
     def __eq__(self, other):
         if self.ret != other.ret or not compareListsSameposition(self.params, other.params):
@@ -402,8 +436,8 @@ class SmaliAnnotation(SmaliWithLines):
 
 
 class SmaliClass(SmaliAnnotableModifiable):
-    def __init__(self):
-        super(SmaliClass, self).__init__()
+    def __init__(self, project):
+        super(SmaliClass, self).__init__(project)
         self.name = None
         self.zuper = None
         self.source = None

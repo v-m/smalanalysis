@@ -34,7 +34,7 @@ if [ ! -d $v1".smali" ]; then
     if [ $VERBOSE -eq 1 ]; then
         echo "Disassembling $v1.apk";
     fi
-	java -jar bin/baksmali-2.2.1.jar disassemble $v1".apk" -o $v1".smali"
+    python tools/disassemble.py $v1".apk" $v1".smali"
 else
     if [ $VERBOSE -eq 1 ]; then
         echo "$v1.apk already disassembled, skipping";
@@ -45,7 +45,7 @@ if [ ! -d $v2".smali" ]; then
     if [ $VERBOSE -eq 1 ]; then
         echo "Disassembling $v2.apk";
     fi
-	java -jar bin/baksmali-2.2.1.jar disassemble $v2".apk" -o $v2".smali"
+    python tools/disassemble.py $v2".apk" $v2".smali"
 else
     if [ $VERBOSE -eq 1 ]; then
         echo "$v2.apk already disassembled, skipping";
