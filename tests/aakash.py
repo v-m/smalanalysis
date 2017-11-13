@@ -36,6 +36,224 @@ class TestUM(unittest.TestCase):
             if p.endswith('.smali') and os.path.isdir(fullfile):
                 shutil.rmtree(fullfile)
 
+    def test_v1v2_changesinStrings_xml(self):
+        pkg = 'com.example.xinyin.myapplication'
+        v1 = 'apks/app1.smali'
+        v2 = 'apks/app2.smali'
+
+        TestUM.prepare(v1)
+        TestUM.prepare(v2)
+
+        #global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
+        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
+
+        self.assertEqual(E, 0)
+        self.assertEqual(R, 0)
+        self.assertEqual(C, 0)
+        self.assertEqual(CA, 0)
+        self.assertEqual(CD, 0)
+        self.assertEqual(CC, 0)
+        self.assertEqual(MA, 0)
+        self.assertEqual(MD, 0)
+        self.assertEqual(MC, 0)
+        self.assertEqual(MR, 0)
+        self.assertEqual(FA, 0)
+        self.assertEqual(FD, 0)
+        self.assertEqual(FC, 0)
+        self.assertEqual(FR, 0)
+    
+    def test_v2v3_renameingonemethod(self):
+        pkg = 'com.example.xinyin.myapplication'
+        v1 = 'apks/app2.smali'
+        v2 = 'apks/app3.smali'
+
+
+        TestUM.prepare(v1)
+        TestUM.prepare(v2)
+
+        #global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
+        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
+
+        self.assertEqual(E, 0)
+        self.assertEqual(R, 0)
+        self.assertEqual(C, 1)
+        self.assertEqual(CA, 0)
+        self.assertEqual(CD, 0)
+        self.assertEqual(CC, 1)
+        self.assertEqual(MA, 0)
+        self.assertEqual(MD, 0)
+        self.assertEqual(MC, 0)
+        self.assertEqual(MR, 1)
+        self.assertEqual(FA, 0)
+        self.assertEqual(FD, 0)
+        self.assertEqual(FC, 0)
+        self.assertEqual(FR, 0)
+
+    def test_v3v4_renameingonefield(self):
+        pkg = 'com.example.xinyin.myapplication'
+        v1 = 'apks/app3.smali'
+        v2 = 'apks/app4.smali'
+
+
+        TestUM.prepare(v1)
+        TestUM.prepare(v2)
+
+        #global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
+        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
+
+        self.assertEqual(E, 0)
+        self.assertEqual(R, 0)
+        self.assertEqual(C, 1)
+        self.assertEqual(CA, 0)
+        self.assertEqual(CD, 0)
+        self.assertEqual(CC, 1)
+        self.assertEqual(MA, 0)
+        self.assertEqual(MD, 0)
+        self.assertEqual(MC, 0)
+        self.assertEqual(MR, 0)
+        self.assertEqual(FA, 0)
+        self.assertEqual(FD, 0)
+        self.assertEqual(FC, 0)
+        self.assertEqual(FR, 1)
+
+    def test_v4v5_renameingonefield_String(self):
+        pkg = 'com.example.xinyin.myapplication'
+        v1 = 'apks/app4.smali'
+        v2 = 'apks/app5.smali'
+
+
+        TestUM.prepare(v1)
+        TestUM.prepare(v2)
+
+        #global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
+        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
+
+        self.assertEqual(E, 0)
+        self.assertEqual(R, 0)
+        self.assertEqual(C, 1)
+        self.assertEqual(CA, 0)
+        self.assertEqual(CD, 0)
+        self.assertEqual(CC, 1)
+        self.assertEqual(MA, 0)
+        self.assertEqual(MD, 0)
+        self.assertEqual(MC, 0)
+        self.assertEqual(MR, 0)
+        self.assertEqual(FA, 0)
+        self.assertEqual(FD, 0)
+        self.assertEqual(FC, 0)
+        self.assertEqual(FR, 1)
+
+    def test_v5v6_changemethod(self):
+        pkg = 'com.example.xinyin.myapplication'
+        v1 = 'apks/app5.smali'
+        v2 = 'apks/app6.smali'
+
+
+        TestUM.prepare(v1)
+        TestUM.prepare(v2)
+
+        #global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
+        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
+
+        self.assertEqual(E, 0)
+        self.assertEqual(R, 1)
+        self.assertEqual(C, 0)
+        self.assertEqual(CA, 0)
+        self.assertEqual(CD, 0)
+        self.assertEqual(CC, 1)
+        self.assertEqual(MA, 0)
+        self.assertEqual(MD, 0)
+        self.assertEqual(MC, 1)
+        self.assertEqual(MR, 0)
+        self.assertEqual(FA, 0)
+        self.assertEqual(FD, 0)
+        self.assertEqual(FC, 0)
+        self.assertEqual(FR, 0)
+
+    def test_v6v7_renameingonefield(self):
+        pkg = 'com.example.xinyin.myapplication'
+        v1 = 'apks/app6.smali'
+        v2 = 'apks/app7.smali'
+
+
+        TestUM.prepare(v1)
+        TestUM.prepare(v2)
+
+        #global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
+        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
+
+        self.assertEqual(E, 0)
+        self.assertEqual(R, 0)
+        self.assertEqual(C, 1)
+        self.assertEqual(CA, 0)
+        self.assertEqual(CD, 0)
+        self.assertEqual(CC, 1)
+        self.assertEqual(MA, 0)
+        self.assertEqual(MD, 0)
+        self.assertEqual(MC, 0)
+        self.assertEqual(MR, 0)
+        self.assertEqual(FA, 0)
+        self.assertEqual(FD, 0)
+        self.assertEqual(FC, 0)
+        self.assertEqual(FR, 1)
+ 
+
+    def test_v11v12_constructor_method_change(self):
+        pkg = 'com.example.xinyin.myapplication'
+        v1 = 'apks/app11.smali'
+        v2 = 'apks/app12.smali'
+
+
+        TestUM.prepare(v1)
+        TestUM.prepare(v2)
+
+
+        #global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
+        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
+
+        self.assertEqual(E, 0)
+        self.assertEqual(R, 1)
+        self.assertEqual(C, 0)
+        self.assertEqual(CA, 0)
+        self.assertEqual(CD, 0)
+        self.assertEqual(CC, 1)
+        self.assertEqual(MA, 0)
+        self.assertEqual(MD, 0)
+        self.assertEqual(MC, 1)
+        self.assertEqual(MR, 0)
+        self.assertEqual(FA, 0)
+        self.assertEqual(FD, 0)
+        self.assertEqual(FC, 0)
+        self.assertEqual(FR, 0)
+
+
+    def test_v12v13_method_change_and_call_method(self):
+        pkg = 'com.example.xinyin.myapplication'
+        v1 = 'apks/app12.smali'
+        v2 = 'apks/app13.smali'
+
+
+        TestUM.prepare(v1)
+        TestUM.prepare(v2)
+
+        #global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
+        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
+
+        self.assertEqual(E, 0)
+        self.assertEqual(R, 0)
+        self.assertEqual(C, 1)
+        self.assertEqual(CA, 0)
+        self.assertEqual(CD, 0)
+        self.assertEqual(CC, 1)
+        self.assertEqual(MA, 0)
+        self.assertEqual(MD, 0)
+        self.assertEqual(MC, 2)
+        self.assertEqual(MR, 0)
+        self.assertEqual(FA, 0)
+        self.assertEqual(FD, 0)
+        self.assertEqual(FC, 0)
+        self.assertEqual(FR, 0)
+'''
     def test_v1v2(self):
         pkg = 'com.example.aakash.versiona'
         v1 = 'apks/Version1.smali'
@@ -44,8 +262,8 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v1)
         TestUM.prepare(v2)
 
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(v1, v2, pkg)
+        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
+        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
 
         self.assertEqual(E, 1)
         self.assertEqual(R, 0)
@@ -56,9 +274,11 @@ class TestUM(unittest.TestCase):
         self.assertEqual(MA, 3)
         self.assertEqual(MD, 0)
         self.assertEqual(MC, 0)
+        self.assertEqual(MR, 0)
         self.assertEqual(FA, 0)
         self.assertEqual(FD, 0)
         self.assertEqual(FC, 0)
+        self.assertEqual(FR, 0)
 
     def test_v2v3(self):
         pkg = 'com.example.aakash.versiona'
@@ -611,7 +831,7 @@ class TestUM(unittest.TestCase):
         self.assertEqual(FA, 1)
         self.assertEqual(FC, 0)
         self.assertEqual(FD, 0)
-
+'''
 
 if __name__ == '__main__':
     unittest.main()
