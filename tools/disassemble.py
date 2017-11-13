@@ -21,7 +21,11 @@ def runSmali(apkpath, smalipath, overwrite=False):
         if os.path.exists(fullsmalipath):
             os.rmdir(fullsmalipath)
 
-        task = subprocess.Popen('java -jar bin/baksmali-2.2.1.jar disassemble "%s/%s" -o "%s"' % (apkpath, file, fullsmalipath), shell=True, stdout=subprocess.PIPE)
+        base = os.path.realpath(__file__)
+        for i in range(2):
+            base = base[:base.rindex('/')]
+
+        task = subprocess.Popen('java -jar %s/bin/baksmali-2.2.1.jar disassemble "%s/%s" -o "%s"' % (base, apkpath, file, fullsmalipath), shell=True, stdout=subprocess.PIPE)
         task.wait()
 
     z.close()
@@ -38,5 +42,6 @@ if __name__ == '__main__':
     if len(sys.argv) > 2:
         apkpath = sys.argv[1]
         smalifolder = sys.argv[2]
+        overwrite = False if len(sys.argv) < 3 else True if sys.argv[3] == '1' else False
 
-        runSmali(apkpath, smalifolder)
+        runSmali(apkpath, smalifolder, overwrite)

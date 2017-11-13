@@ -126,11 +126,19 @@ class SmaliProject(object):
         SmaliProject.parseFolderLoop(folder, self, package, skips=skips, includes=includes)
 
     def searchClass(self, clazzName):
+        searchfor = clazzName
+
+        if '/' not in searchfor and '.' in searchfor:
+            searchfor = searchfor.replace('/', '.')
+
+        if searchfor[0] == 'L' and searchfor[-1] == ';':
+            searchfor = searchfor[1:-1]
+
         for c in self.classes:
             if c is None or c.name is None:
                 continue
 
-            if c.name[1:-1] == clazzName:
+            if searchfor == clazzName:
                 return c
 
         return None
