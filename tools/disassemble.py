@@ -42,6 +42,10 @@ if __name__ == '__main__':
     if len(sys.argv) > 2:
         apkpath = sys.argv[1]
         smalifolder = sys.argv[2]
-        overwrite = False if len(sys.argv) < 3 else True if sys.argv[3] == '1' else False
+        overwrite = False
+
+
+        if len(sys.argv) > 3:
+            overwrite = sys.argv[3] == '1'
 
         runSmali(apkpath, smalifolder, overwrite)
