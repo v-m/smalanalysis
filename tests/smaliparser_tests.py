@@ -1,5 +1,4 @@
 import unittest
-import metrics
 import os
 import subprocess
 
@@ -125,3 +124,6 @@ class SmaliParseTesting(unittest.TestCase):
         self.assertEqual(len(f.modifiers), 1)
         self.assertTrue('private' in f.modifiers)
         self.assertIsNone(f.init)
+
+if __name__ == '__main__':
+    unittest.main()

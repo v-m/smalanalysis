@@ -183,10 +183,13 @@ class BasicMetricTesting(unittest.TestCase):
     def test_change_init_static_final_field(self):
         self.runTestForTwoVersions('v44', 'v45', 1, 1, C = 1, FC = 1, CC = 1)
 
-    #Changing the ressId on an android standard method
+    #Changing the ressId on an android standard method (5+ length int)
     def test_change_ress_id(self):
-        self.runTestForTwoVersions('v46', 'v47', 3, 3, R = 0, MC = 0, CC = 0)
+        self.runTestForTwoVersions('v46', 'v48', 3, 3, R = 0, MC = 0, CC = 0)
 
-    #Changing another int which is not ressid related in a filtered method
+    #Changing int which is not ressid related (<5 length int)
     def test_change_non_ress_id(self):
-        self.runTestForTwoVersions('v46', 'v48', 3, 3, R = 1, MC = 1, CC = 1)
+        self.runTestForTwoVersions('v46', 'v47', 3, 3, R = 1, MC = 1, CC = 1)
+
+if __name__ == '__main__':
+    unittest.main()

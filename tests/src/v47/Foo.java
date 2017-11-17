@@ -7,6 +7,6 @@ import android.widget.Toast;
 
 public class Foo{
 	public void bar(){
-		Toast t = Toast.makeText(null, 123457, 1);
+		Toast t = Toast.makeText(null, 1234567890, 2);
 	}
 }

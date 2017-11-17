@@ -23,7 +23,7 @@
     .line 11
     const/4 v0, 0x0
 
-    const v1, 0x1e240
+    const v1, 0x499602d2
 
     const/4 v2, 0x1
 
