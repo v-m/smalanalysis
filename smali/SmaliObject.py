@@ -449,6 +449,36 @@ class SmaliClass(SmaliAnnotableModifiable):
     def getName(self):
         return self.name
 
+    def determineParentClass(self):
+        if self.parent is not None:
+            if self.zuper is not None:
+                return self.parent.searchClass(self.zuper)
+
+        return None
+
+    def determineParentClassHierarchy(self):
+        ret = []
+
+        parent = self.determineParentClass()
+
+        while parent is not None:
+            ret.append(parent)
+            parent = parent.determineParentClass()
+
+        return ret
+
+
+    def determineParentClassHierarchyNames(self):
+        ret = self.determineParentClassHierarchy()
+
+        if len(ret) == 0:
+            return [self.zuper]
+
+        lastParent = ret[-1].zuper
+        ret = list(map(lambda x: x.name, ret))
+        ret.append(lastParent)
+        return ret
+
     @staticmethod
     def getDisplayName(clazzname):
         mt = classnamepattern.match(clazzname)

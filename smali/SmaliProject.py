@@ -131,14 +131,14 @@ class SmaliProject(object):
         if '/' not in searchfor and '.' in searchfor:
             searchfor = searchfor.replace('/', '.')
 
-        if searchfor[0] == 'L' and searchfor[-1] == ';':
-            searchfor = searchfor[1:-1]
+        if not (searchfor[0] == 'L' and searchfor[-1] == ';'):
+            searchfor = 'L%s;'%(searchfor)
 
         for c in self.classes:
             if c is None or c.name is None:
                 continue
 
-            if searchfor == clazzName:
+            if searchfor == c.name:
                 return c
 
         return None
