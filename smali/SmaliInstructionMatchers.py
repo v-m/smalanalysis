@@ -4,7 +4,7 @@
 
 import re
 
-INVOKE_SUPER = re.compile("^invoke-super \{[pv0-9, ]*?\}, (.*)->(.*)\((.*)\)(.*)$")
+INVOKE_SUPER = re.compile("^invoke-super(/range)? \{[pv0-9,. ]*?\}, (.*)->(.*)\((.*)\)(.*)$")
 INVOKE_VIRTUAL = re.compile("^invoke-virtual \{[pv0-9, ]*?\}, (.*)->(.*)\((.*)\)(.*)$")
 INVOKE_VIRTUAL_BUNDLE_ACCESSES = re.compile("^invoke-virtual \{p1, (v[0-9]+?), v[0-9]+?\}, Landroid/os/Bundle;->(get|put)(.*)\(.*\)(.*)$")
 INVOKE_VIRTUAL_BUNDLE_ACCESSES_ARRAY = re.compile("^invoke-virtual \{p1, (v[0-9]+?)\}, Landroid/os/Bundle;->(get|put)(.*)\(.*\)(.*)$")
@@ -16,7 +16,7 @@ def matchSuperInvocation(smaliline):
     if match is None:
         return None
 
-    return match.groups()
+    return match.groups()[1:]
 
 
 def matchVirtualInvocation(smaliline):

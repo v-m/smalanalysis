@@ -1,7 +1,7 @@
 # Detecting save/load instance state faults
 # Author: Vincenzo Musco (http://www.vmusco.com)
 # Date: November 17, 2017
-
+import argparse
 import re
 
 import sys
@@ -339,12 +339,17 @@ def superCalledOnAllMethods(methods):
 
 
 if __name__ == '__main__':
+    #path = "/Users/vince/Downloads/Kontak"
+    #path = "/Users/vince/Downloads/Kontak9"
+    #path = "/Users/vince/Temp/SW_072516d"           #V1
+    #path = "/Users/vince/Temp/SW_5b66df5"           #V2
+    #path = "/Users/vince/Temp/SW_master"           #V2
 
-    path = "/Users/vince/Downloads/Kontak"
-    path = "/Users/vince/Downloads/Kontak9"
-    path = "/Users/vince/Temp/SW_072516d"           #V1
-    path = "/Users/vince/Temp/SW_5b66df5"           #V2
-    path = "/Users/vince/Temp/SW_master"           #V2
+    parser = argparse.ArgumentParser(description='Search for instance state errors')
+    parser.add_argument('smali', type=str, help='Folder containing smali files')
+
+    args = parser.parse_args()
+    path = args.smali
 
     project = smali.SmaliProject.SmaliProject()
     project.parseFolder(path)
