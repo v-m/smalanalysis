@@ -412,6 +412,9 @@ class SmaliMethod(SmaliWithLines):
     def getSignature(self):
         return ('%s(%s)%s'%(self.name, ''.join(self.params), self.ret)).strip()
 
+    def getFullSignature(self):
+        return '%s.%s'%('?' if self.parent is None else self.parent.getBaseName().replace('/', '.'), self.getSignature())
+
 
 class SmaliAnnotation(SmaliWithLines):
     pass
@@ -796,5 +799,12 @@ class SmaliClass(SmaliAnnotableModifiable):
             for f in self.fields:
                 if SmaliClass.matchFieldAndFieldCall(f, fcall):
                     return f
+
+        return None
+
+    def findMethod(self, name, parameters, ret):
+        for m in self.methods:
+            if m.name == name and ''.join(m.params) == parameters and m.ret == ret:
+                return m
 
         return None
