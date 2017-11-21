@@ -1,3 +1,4 @@
+import argparse
 import shutil
 import subprocess
 import sys
@@ -39,13 +40,18 @@ def runSmali(apkpath, smalipath, overwrite=False):
         os.rmdir(dir)
 
 if __name__ == '__main__':
-    if len(sys.argv) > 2:
-        apkpath = sys.argv[1]
-        smalifolder = sys.argv[2]
-        overwrite = False
+    parser = argparse.ArgumentParser(description='Extract smali content.')
+    parser.add_argument('apkpath', type=str,
+                        help='The full path to the apk')
+    parser.add_argument('smalifolder', type=str,
+                        help='Folder where to output smali files')
+    parser.add_argument('--overwrite', '-o', action='store_true',
+                        help='Delete all previous exportation')
 
+    args = parser.parse_args()
 
-        if len(sys.argv) > 3:
-            overwrite = sys.argv[3] == '1'
+    apkpath = args.apkpath
+    smalifolder = args.smalifolder
+    overwrite = args.overwrite
 
-        runSmali(apkpath, smalifolder, overwrite)
+    runSmali(apkpath, smalifolder, overwrite)
