@@ -9,7 +9,11 @@ def zipdir(path, smalizip):
     for root, dirs, files in os.walk(path):
         for file in files:
             pth = os.path.join(root, file)
-            pthinzip = '/'.join(pth.split('/')[1:])
+            pthinzip = pth[len(path):]
+
+            if pthinzip[0] == os.sep:
+                pthinzip = pthinzip[1:]
+
             smalizip.write(pth, pthinzip)
 
 def runSmali(apkpath, smalipath, overwrite=False, buildZip=False):
