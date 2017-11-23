@@ -28,7 +28,7 @@ def runSmali(apkpath, smalipath, overwrite=False, buildZip=False):
 
     dexesfolder = []
     z = zipfile.ZipFile(apkpath)
-    for file in [file for file in zipfile.ZipFile(apkpath).namelist() if re.match('^classes[0-9]*.dex$', file)]:
+    for file in [file for file in z.namelist() if re.match('^classes[0-9]*.dex$', file)]:
         fullsmalipath = '_'.join([smalipath, file])
         dexesfolder.append(fullsmalipath)
 

@@ -104,7 +104,7 @@ class SmaliProject(object):
                     cls.parent = target
                     target.addClass(cls)
                 elif op == 2:
-                    fp = open(f, 'r')
+                    fp = open(fullpath, 'r')
                     ctnt = fp.read()
                     fp.close()
                     target.parseRessource(ctnt)
@@ -146,7 +146,7 @@ class SmaliProject(object):
 
         if os.path.isfile(folder):
             # This is a ZIP
-            zp = zipfile.ZipFile(zip, 'r')
+            zp = zipfile.ZipFile(folder, 'r')
             SmaliProject.parseZipLoop(zp, self, package, skips=skips, includes=includes)
         else:
             SmaliProject.parseFolderLoop(folder, self, package, skips=skips, includes=includes)
