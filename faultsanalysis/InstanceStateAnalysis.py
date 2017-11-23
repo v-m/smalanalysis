@@ -442,7 +442,7 @@ if __name__ == '__main__':
     path = args.smali
 
     project = smali.SmaliProject.SmaliProject()
-    project.parseFolder(path)
+    project.parseProject(path)
 
     if args.header:
         print('Apk, Suspicious, Class, nb_fields, nb_load_access, nb_write_access, nb_oncreate_meth, nb_bundle_access, P3_bundle_access_protection, P4a_all_read_write, P4b_type_check, P2_super_calling')

@@ -50,7 +50,7 @@ if __name__ == '__main__':
     rec = args.recursive
 
     project = smali.SmaliProject.SmaliProject()
-    project.parseFolder(path)
+    project.parseProject(path)
 
     for dentry in so.findClassesOfInterests(project):
         clazz = dentry["class"]

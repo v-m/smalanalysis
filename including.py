@@ -40,14 +40,14 @@ if __name__ == '__main__':
         print("Considering classes included in these files: %s"%args.include_lists)
 
     run = smali.SmaliProject.SmaliProject()
-    run.parseFolder(args.smali, pkg, args.exclude_lists, args.include_lists)
+    run.parseProject(args.smali, pkg, args.exclude_lists, args.include_lists)
 
     included = set()
     for c in run.classes:
         included.add(c.name)
 
     all = smali.SmaliProject.SmaliProject()
-    all.parseFolder(args.smali, None, None, None)
+    all.parseProject(args.smali, None, None, None)
 
     pattern = re.compile('L(.*)/(.*);')
     nopakgpattern = re.compile('L([^/]*);')

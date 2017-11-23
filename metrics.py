@@ -47,9 +47,9 @@ def skipThisClass(skips, clazz):
 
 def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None):
     old = smali.SmaliProject.SmaliProject()
-    old.parseFolder(v1, pkg, excludeListFiles, includeListFiles)
+    old.parseProject(v1, pkg, excludeListFiles, includeListFiles)
     new = smali.SmaliProject.SmaliProject()
-    new.parseFolder(v2, pkg, excludeListFiles, includeListFiles)
+    new.parseProject(v2, pkg, excludeListFiles, includeListFiles)
 
     E, R, C = 0, 0, 0
     MA, MD, MC, MR = 0, 0, 0, 0

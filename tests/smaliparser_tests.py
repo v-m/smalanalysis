@@ -20,7 +20,7 @@ class SmaliParseTesting(unittest.TestCase):
             subprocess.run(['bash', 'src/extractsmali.sh', 'src/%s'%v1], stdout=subprocess.PIPE, cwd=SmaliParseTesting.getTestFolder())
 
             sm = SmaliProject()
-            sm.parseFolder('%s/src/%s'%(SmaliParseTesting.getTestFolder(), v1), None)
+            sm.parseProject('%s/src/%s' % (SmaliParseTesting.getTestFolder(), v1), None)
             return sm
 
     @staticmethod

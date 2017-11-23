@@ -132,20 +132,7 @@ class SmaliProject(object):
 
         return 0
 
-    def parseFolder(self, folder, package = None, skiplists = None, includelist = None):
-        skips = None
-        includes = None
-        if skiplists is not None:
-            skips = set()
-            for s in skiplists:
-                skips = skips.union(SmaliProject.loadRulesListFromFile(s))
-        if includelist is not None:
-            includes = set()
-            for s in includelist:
-                includes = includes.union(SmaliProject.loadRulesListFromFile(s))
-        SmaliProject.parseFolderLoop(folder, self, package, skips=skips, includes=includes)
-
-    def parseZip(self, zip, package = None, skiplists = None, includelist = None):
+    def parseProject(self, folder, package = None, skiplists = None, includelist = None):
         skips = None
         includes = None
         if skiplists is not None:
@@ -157,8 +144,12 @@ class SmaliProject(object):
             for s in includelist:
                 includes = includes.union(SmaliProject.loadRulesListFromFile(s))
 
-        zp = zipfile.ZipFile(zip, 'r')
-        SmaliProject.parseZipLoop(zp, self, package, skips=skips, includes=includes)
+        if os.path.isfile(folder):
+            # This is a ZIP
+            zp = zipfile.ZipFile(zip, 'r')
+            SmaliProject.parseZipLoop(zp, self, package, skips=skips, includes=includes)
+        else:
+            SmaliProject.parseFolderLoop(folder, self, package, skips=skips, includes=includes)
 
     @staticmethod
     def parseZipLoop(zp, target, package=None, skips=None, includes=None):
