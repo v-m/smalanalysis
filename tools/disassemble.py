@@ -1,15 +1,24 @@
 import argparse
 import shutil
 import subprocess
-import sys
 import os
 import zipfile
 import re
 
-def runSmali(apkpath, smalipath, overwrite=False):
+def zipdir(path, smalizip):
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            pth = os.path.join(root, file)
+            pthinzip = '/'.join(pth.split('/')[1:])
+            smalizip.write(pth, pthinzip)
+
+def runSmali(apkpath, smalipath, overwrite=False, buildZip=False):
     if os.path.exists(smalipath):
         if overwrite:
-            os.rmdir(smalipath)
+            if os.path.isfile(smalipath):
+                os.remove(smalipath)
+            else:
+                shutil.rmtree(smalipath)
         else:
             return
 
@@ -20,7 +29,7 @@ def runSmali(apkpath, smalipath, overwrite=False):
         dexesfolder.append(fullsmalipath)
 
         if os.path.exists(fullsmalipath):
-            os.rmdir(fullsmalipath)
+            shutil.rmtree(fullsmalipath)
 
         base = os.path.realpath(__file__)
         for i in range(2):
@@ -31,31 +40,40 @@ def runSmali(apkpath, smalipath, overwrite=False):
 
     z.close()
 
-    os.mkdir(smalipath)
+    if buildZip:
+        with zipfile.ZipFile(smalipath, 'w') as smalizip:
+            for dir in dexesfolder:
+                zipdir(dir, smalizip)
+                shutil.rmtree(dir)
+    else:
+        os.mkdir(smalipath)
 
-    for dir in dexesfolder:
-        for sdir in os.listdir(dir):
-            shutil.move('/'.join([dir, sdir]), '/'.join([smalipath, sdir]))
+        for dir in dexesfolder:
+            for sdir in os.listdir(dir):
+                shutil.move('/'.join([dir, sdir]), '/'.join([smalipath, sdir]))
 
-        os.rmdir(dir)
+            shutil.rmtree(dir)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Extract smali content.')
     parser.add_argument('apkpath', type=str,
                         help='The full path to the apk')
-    parser.add_argument('smalifolder', type=str,
-                         help='Folder where to output smali files', nargs='?', default = None )
+    parser.add_argument('output', type=str,
+                         help='Where to output smali files', nargs='?', default = None )
     parser.add_argument('--overwrite', '-o', action='store_true',
                         help='Delete all previous exportation')
+    parser.add_argument('--zip', '-z', action='store_true',
+                        help='Build an archive instead of a folder')
 
     args = parser.parse_args()
 
     apkpath = args.apkpath
-    smalifolder = args.smalifolder
+    output = args.output
+    dozip = args.zip
 
-    if smalifolder is None:
-        smalifolder = '%s.smali'%apkpath
+    if output is None:
+        output = '%s.smali'%apkpath
 
     overwrite = args.overwrite
 
-    runSmali(apkpath, smalifolder, overwrite)
+    runSmali(apkpath, output, overwrite, dozip)
