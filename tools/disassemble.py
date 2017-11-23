@@ -44,7 +44,7 @@ if __name__ == '__main__':
     parser.add_argument('apkpath', type=str,
                         help='The full path to the apk')
     parser.add_argument('smalifolder', type=str,
-                        help='Folder where to output smali files')
+                         help='Folder where to output smali files', nargs='?', default = None )
     parser.add_argument('--overwrite', '-o', action='store_true',
                         help='Delete all previous exportation')
 
@@ -52,6 +52,10 @@ if __name__ == '__main__':
 
     apkpath = args.apkpath
     smalifolder = args.smalifolder
+
+    if smalifolder is None:
+        smalifolder = '%s.smali'%apkpath
+
     overwrite = args.overwrite
 
     runSmali(apkpath, smalifolder, overwrite)

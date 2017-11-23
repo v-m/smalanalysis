@@ -16,7 +16,7 @@ def buildName(clazz, name, params, ret):
 
 def draw(G, frm, method, project = None):
     for line in method:
-        mtch = sim.matchVirtualInvocation(line)
+        mtch = sim.matchVirtualOrDirectInvocation(line)[2:]
 
         if mtch is None:
             mtch = sim.matchSuperInvocation(line)

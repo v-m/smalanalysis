@@ -4,8 +4,6 @@
 import argparse
 import re
 
-import sys
-
 import smali.SmaliProject
 import smali.SmaliInstructionMatchers as sim
 
@@ -61,7 +59,7 @@ SDK_KNOWN_FRAGMENT_REF = ('android/support/v17/leanback/app/BrandedSupportFragme
                             'android/support/v17/leanback/app/VideoSupportFragment')
 
 
-android_support_matcher = re.compile('^Landroid/support/v[47]+.*')
+android_support_matcher = re.compile('^Landroid/support/+.*')
 
 
 
@@ -117,6 +115,9 @@ def inspectMethodForFragment(method):
         return 'S'
     elif isThisMethods(method, 'onCreate', 'V', ['Landroid/os/Bundle;']):
         return 'R'
+    #onCreateDialog(Landroid/os/Bundle;)Landroid/app/Dialog;
+    elif isThisMethods(method, 'onCreateDialog', 'Landroid/app/Dialog;', ['Landroid/os/Bundle;']):
+        return 'R'
     elif isThisMethods(method, 'onCreateView', 'V', ['Landroid/view/LayoutInflater;', 'Landroid/view/ViewGroup;', 'Landroid/os/Bundle;']):
         return 'R'
     elif isThisMethods(method, 'onActivityCreated', 'V', ['Landroid/os/Bundle;']):
@@ -150,10 +151,10 @@ def findClassesOfInterests(project):
         #elif rootparent in SDK_KNOWN_DIALOG_REF:
         #    type = 'D'
 
-        #if type is None:
-        #    rootparent = hierarchyHasSetItem(ret, SDK_KNOWN_FRAGMENT_REF)
-        #    if rootparent is not None:
-        #        type = 'F'
+        if type is None:
+            rootparent = hierarchyHasSetItem(ret, SDK_KNOWN_FRAGMENT_REF)
+            if rootparent is not None:
+                type = 'F'
 
         if type is None:
             continue
@@ -177,20 +178,22 @@ def findReadWriteMethods(type, methods):
                 loadInstanceDeclaration.append(method)
             elif accesstype == 'S':
                 saveInstanceDeclaration.append(method)
-        '''
-        elif type == 'D':
-            accesstype = inspectMethodForDialog(method)
-            if accesstype == 'R':
-                loadInstanceDeclaration.append(method)
-            elif accesstype == 'S':
-                saveInstanceDeclaration.append(method)
+
+
+        #elif type == 'D':
+        #    accesstype = inspectMethodForDialog(method)
+        #    if accesstype == 'R':
+        #        loadInstanceDeclaration.append(method)
+        #    elif accesstype == 'S':
+        #        saveInstanceDeclaration.append(method)
+
+
         elif type == 'F':
             accesstype = inspectMethodForFragment(method)
             if accesstype == 'R':
                 loadInstanceDeclaration.append(method)
             elif accesstype == 'S':
                 saveInstanceDeclaration.append(method)
-        '''
 
     return {"load": loadInstanceDeclaration, "save": saveInstanceDeclaration}
 
@@ -238,8 +241,74 @@ def listBundleAccesses(method):
 
         if match is not None:
             match = list(match)
-            match[0] = lastKey[match[0]]
+
+            if match[0] not in lastKey:
+                match[0] = '?%s?'%match[0]
+            else:
+                match[0] = lastKey[match[0]]
+
             ret.append(match)
+
+    if len(ret) == 0:
+        return None
+
+    return ret
+
+def listBundleAccessesFollowingCalls(method, missing, project):
+    ret = []
+
+    analyzing = None
+
+    for l in method.getCleanLines():
+        #print(l)
+        match = sim.affectingString(l)
+
+        if match is not None:
+            if analyzing is not None:
+                analyzing = None
+                #print('Matching ended')
+
+            if match[1] in missing:
+                analyzing = match
+                #print('Matching: ', match)
+
+            #print(l)
+
+        if analyzing is not None:
+            match = sim.matchVirtualOrDirectInvocation(l)
+
+            if match is not None:
+                reg = [s.strip() for s in match[1].split(',')]
+
+                if analyzing[0] in reg:
+
+                    # Are we able to find the class/method in analyzed methods?
+                    relclass = project.searchClass(match[2])
+
+                    if relclass is not None:
+                        relmeth = relclass.findMethod(*match[3:])
+                        #print(relmeth)
+
+                        if relmeth is not None:
+                            # If the methods takes a Bundle parameter...
+                            if 'Landroid/os/Bundle;' in relmeth.params:
+
+                                #print(relmeth.params)
+                                #print('*', l)
+                                pno = 'p%d'%(reg.index(analyzing[0]))
+
+                                # We need to know what is the Bundle position in the parameters to map to register...
+                                pnobdl = 'p%d'%(relmeth.params.index('Landroid/os/Bundle;') + 1)
+
+                                for ll in relmeth.getCleanLines():
+                                    match = sim.matchVirtualInvocationBundleAccesses(ll, pnobdl)
+
+                                    if match is not None:
+                                        #action = match[1]
+                                        #type = match[2]
+                                        #print('*****', ll, match[1])
+                                        match[0] = analyzing[1]
+                                        ret.append(match)
 
     if len(ret) == 0:
         return None
@@ -279,11 +348,13 @@ def bundleAccessIsProtectedByNullCheck(methods):
 def bundleReadWhatIsWritten(methods):
     writeBundle = set()
     readBundle = set()
+    bundleAccessesCount = 0
 
     for amethod in methods:
         bac = listBundleAccesses(amethod)
 
         if bac is not None:
+            bundleAccessesCount += 1
             for b in bac:
                 if b[1] == 'get':
                     readBundle.add(b[0])
@@ -291,11 +362,28 @@ def bundleReadWhatIsWritten(methods):
                     writeBundle.add(b[0])
 
     # print("Bundle contains %d items..." % (max(len(readBundle), len(writeBundle))))
-    symdiff = readBundle ^ writeBundle
+    return readBundle, writeBundle, bundleAccessesCount
 
-    return list(symdiff)
+    #return list(symdiff)
     #if len(symdiff) > 0:
     #    print("Read/Write not done symmetricly. Incoherent items: %s." % ','.join(symdiff))
+
+
+def bundleReadWhatIsWrittenRecursive(methods, missing, project):
+    readBundle = missing[0]
+    writeBundle = missing[1]
+
+    for amethod in methods:
+        bac = listBundleAccessesFollowingCalls(amethod, readBundle ^ writeBundle, project)
+        #print(bac)
+        if bac is not None:
+            for b in bac:
+                if b[1] == 'get':
+                    readBundle.add(b[0])
+                else:
+                    writeBundle.add(b[0])
+
+    return readBundle, writeBundle
 
 # PATTERN 4b --
 # Writing/loading type sanity check?
@@ -338,6 +426,7 @@ def superCalledOnAllMethods(methods):
     return missingSuper
 
 
+
 if __name__ == '__main__':
     #path = "/Users/vince/Downloads/Kontak"
     #path = "/Users/vince/Downloads/Kontak9"
@@ -347,6 +436,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Search for instance state errors')
     parser.add_argument('smali', type=str, help='Folder containing smali files')
+    parser.add_argument('--header', '-H', action='store_true', help='Print the CSV header')
 
     args = parser.parse_args()
     path = args.smali
@@ -354,12 +444,18 @@ if __name__ == '__main__':
     project = smali.SmaliProject.SmaliProject()
     project.parseFolder(path)
 
-    print('Class, P3_bundle_access_protection, P4a_all_read_write, P4b_type_check, P2_super_calling')
+    if args.header:
+        print('Apk, Suspicious, Class, nb_fields, nb_load_access, nb_write_access, nb_oncreate_meth, nb_bundle_access, P3_bundle_access_protection, P4a_all_read_write, P4b_type_check, P2_super_calling')
 
     for dentry in findClassesOfInterests(project):
+        suspiciousCount = 0
+
+        line = []
+
         clazz = dentry["class"]
         type = dentry["type"]
         rootparent = dentry["rootparent"]
+
 
         # Let's look if developper override reading/writing methods...
         loadSave = findReadWriteMethods(type, clazz.methods)
@@ -368,26 +464,54 @@ if __name__ == '__main__':
 
         #print(clazz.name, '\n')
 
-        sys.stdout.write(clazz.getBaseName())
-        sys.stdout.write(',')
+        line.append(path)
+        line.append(clazz.getBaseName())
+        line.append('%d'%len(clazz.fields))  # nb fields
+        line.append('%d'%len(loadInstanceDeclaration))  # nb load methods
+        line.append('%d'%len(saveInstanceDeclaration))  # nb save methods
+
 
         # PATTERN 3 -- Bundle data acces is protected by == null or != null check ?
-        r = bundleAccessIsProtectedByNullCheck(findOnCreateMethods(loadInstanceDeclaration))
-        sys.stdout.write(':'.join(r))
-        sys.stdout.write(',')
-
+        oncreatemeth = findOnCreateMethods(loadInstanceDeclaration)
+        line.append('%d'%len(oncreatemeth))  # nb oncreatemeth
 
         # PATTERN 4a -- Are all bundle item saved well loaded?
-        r = bundleReadWhatIsWritten(loadInstanceDeclaration + saveInstanceDeclaration)
-        sys.stdout.write(':'.join(r))
-        sys.stdout.write(',')
+        rr = bundleReadWhatIsWritten(loadInstanceDeclaration + saveInstanceDeclaration)
+        line.append('%d'%rr[2])  # nb bundleaccesses
+
+
+
+
+
+        # PATTERN 3 -- Bundle data acces is protected by == null or != null check ? (cont.)
+        r = bundleAccessIsProtectedByNullCheck(oncreatemeth)
+        line.append(':'.join(r))
+
+
+
+        # PATTERN 4a -- Are all bundle item saved well loaded? (cont.)
+        symdiff = rr[0] ^ rr[1]
+
+
+        if len(symdiff) > 0:
+            # With not matched, just redo a deep analysis to ensure that the read/write is not occuring in external method...
+            r = bundleReadWhatIsWrittenRecursive(loadInstanceDeclaration + saveInstanceDeclaration, rr, project)
+            symdiff = r[0] ^ r[1]
+
+        line.append(':'.join(symdiff))
 
         # PATTERN 4b -- Writing/loading type sanity check?
         r = bundleRespectTypeCoherencies(loadInstanceDeclaration + saveInstanceDeclaration)
-        sys.stdout.write(':'.join(r))
-        sys.stdout.write(',')
+        line.append(':'.join(r))
 
         # PATTERN 2 -- Are we calling super methods?
         r = superCalledOnAllMethods(loadInstanceDeclaration + saveInstanceDeclaration)
-        sys.stdout.write(':'.join(['%s(%s)'%(rr.name, ''.join(rr.params)) for rr in r]))
-        sys.stdout.write('\n')
+        line.append(':'.join(['%s(%s)'%(rr.name, ''.join(rr.params)) for rr in r]))
+
+        for l in line[7:]:
+            if len(l.strip()) > 0:
+                suspiciousCount += 1
+
+        line.insert(0, '+' if suspiciousCount > 0 else '-')
+
+        print(','.join(line))
