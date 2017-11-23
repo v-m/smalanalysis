@@ -66,18 +66,18 @@ if __name__ == '__main__':
                          help='Where to output smali files', nargs='?', default = None )
     parser.add_argument('--overwrite', '-o', action='store_true',
                         help='Delete all previous exportation')
-    parser.add_argument('--zip', '-z', action='store_true',
-                        help='Build an archive instead of a folder')
+    parser.add_argument('--folder', '-f', action='store_true',
+                        help='Disassemble in a folder instead than a ZIP file')
 
     args = parser.parse_args()
 
     apkpath = args.apkpath
     output = args.output
-    dozip = args.zip
+    dofolder = args.folder
 
     if output is None:
         output = '%s.smali'%apkpath
 
     overwrite = args.overwrite
 
-    runSmali(apkpath, output, overwrite, dozip)
+    runSmali(apkpath, output, overwrite, not dofolder)
