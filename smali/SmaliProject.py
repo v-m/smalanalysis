@@ -6,8 +6,10 @@ import re
 import os
 
 import sys
+import zipfile
 
 import smali.SmaliObject
+import io
 
 class MATCHERS:
     obj = "(\\[*(L[a-zA-Z0-9/_$\\-]+;|Z|B|S|C|I|J|F|D|V))"
@@ -28,11 +30,7 @@ class SmaliProject(object):
     def addClass(self, c):
         self.classes.append(c)
 
-    def parseRessource(self, f):
-        fp = open(f, 'r')
-        ctnt = fp.read()
-        fp.close()
-
+    def parseRessource(self, ctnt):
         for line in ctnt.split('\n'):
             refs = MATCHERS.hex_ref.findall(line)
 
@@ -46,7 +44,10 @@ class SmaliProject(object):
         clazz = classname
 
         if '/' in classname:
-            clazz = classname.replace('/', '.')[1:]
+            clazz = classname.replace('/', '.')
+
+        if clazz[0] == '/':
+            clazz = clazz[1:]
 
         if includes is not None:
             for include in includes:
@@ -92,25 +93,44 @@ class SmaliProject(object):
 
             if os.path.isdir(fullpath):
                 SmaliProject.parseFolderLoop(fullpath, target, package, root, skips, includes)
-            elif fullpath.endswith('.smali'):
-                skip = False
-                if package is not None and package.replace('.', '/') not in fullpath:
-                    skip = True
+            else:
+                op =  SmaliProject.keepThisFile(fullpath, package, includes, skips)
 
-                if MATCHERS.ressource_classes.match(fullpath):
-                    target.parseRessource(fullpath)
-                    skip = True
-
-                if (skips is not None or includes is not None):
-                    skip = not SmaliProject.shouldAnalyzeThisClass(fullpath, skips, includes, not skip)
-
-                if fullpath.endswith('/BuildConfig.smali'):
-                    skip = True
-
-                if not skip:
-                    cls = SmaliProject.parseClass(fullpath)
+                if op == 1:
+                    fp = open(fullpath, 'r')
+                    ccontent = fp.read()
+                    fp.close()
+                    cls = SmaliProject.parseClass(ccontent)
                     cls.parent = target
                     target.addClass(cls)
+                elif op == 2:
+                    fp = open(f, 'r')
+                    ctnt = fp.read()
+                    fp.close()
+                    target.parseRessource(ctnt)
+
+
+    # 1 = class / 2 = ressource / 0 = skip
+    @staticmethod
+    def keepThisFile(fullpath, package, includes, skips):
+        if fullpath.endswith('.smali'):
+            skip = False
+            if package is not None and package.replace('.', '/') not in fullpath:
+                skip = True
+
+            if MATCHERS.ressource_classes.match(fullpath):
+                return 2
+
+            if (skips is not None or includes is not None):
+                skip = not SmaliProject.shouldAnalyzeThisClass(fullpath, skips, includes, not skip)
+
+            if fullpath.endswith('/BuildConfig.smali'):
+                skip = True
+
+            if not skip:
+                return 1
+
+        return 0
 
     def parseFolder(self, folder, package = None, skiplists = None, includelist = None):
         skips = None
@@ -124,6 +144,35 @@ class SmaliProject(object):
             for s in includelist:
                 includes = includes.union(SmaliProject.loadRulesListFromFile(s))
         SmaliProject.parseFolderLoop(folder, self, package, skips=skips, includes=includes)
+
+    def parseZip(self, zip, package = None, skiplists = None, includelist = None):
+        skips = None
+        includes = None
+        if skiplists is not None:
+            skips = set()
+            for s in skiplists:
+                skips = skips.union(SmaliProject.loadRulesListFromFile(s))
+        if includelist is not None:
+            includes = set()
+            for s in includelist:
+                includes = includes.union(SmaliProject.loadRulesListFromFile(s))
+
+        zp = zipfile.ZipFile(zip, 'r')
+        SmaliProject.parseZipLoop(zp, self, package, skips=skips, includes=includes)
+
+    @staticmethod
+    def parseZipLoop(zp, target, package=None, skips=None, includes=None):
+        for n in zp.namelist():
+            op = SmaliProject.keepThisFile(n, package, includes, skips)
+
+            if op == 1:
+                ccontent = "".join(map(chr, zp.read(n)))
+                cls = SmaliProject.parseClass(ccontent)
+                cls.parent = target
+                target.addClass(cls)
+            elif op == 2:
+                ccontent = "".join(map(chr, zp.read(n)))
+                target.parseRessource(ccontent)
 
     def searchClass(self, clazzName):
         searchfor = clazzName
@@ -203,13 +252,10 @@ class SmaliProject(object):
         return ret
 
     @staticmethod
-    def parseClass(file):
-        fp = open(file, 'r')
-
+    def parseClass(ccontent):
         clazz = smali.SmaliObject.SmaliClass(None)
 
         # Class declaration
-        ccontent = fp.read()
 
         readingmethod = None
         readingannotation = None
@@ -302,13 +348,13 @@ class SmaliProject(object):
                 sys.stderr.write("Parsing error.\nLine: %s.\n"%line)
                 sys.exit(1)
 
-
-
-        fp.close()
         return clazz
 
     def parseAddClass(self, file):
-        cls = SmaliProject.parseClass(file)
+        fp = open(file, 'r')
+        ccontent = fp.read()
+        fp.close()
+        cls = SmaliProject.parseClass(ccontent)
         cls.parent = self
         self.addClass(cls)
 
