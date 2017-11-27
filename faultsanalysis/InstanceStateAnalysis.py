@@ -62,6 +62,11 @@ SDK_KNOWN_FRAGMENT_REF = ('android/support/v17/leanback/app/BrandedSupportFragme
 android_support_matcher = re.compile('^Landroid/support/+.*')
 
 
+findAlertDialogInstance_pattern_lines = [re.compile('^new-instance [vp][0-9]+, Landroid/support/v7/app/AlertDialog\$Builder;$'),
+                                         re.compile('^invoke-virtual {[vp][0-9]+}, .*->getActivity\(\)L.*/FragmentActivity;$'),
+                                         re.compile('^invoke-direct {[vp][0-9]+, [vp][0-9]+}, Landroid/support/v7/app/AlertDialog\$Builder;-><init>\(Landroid/content/Context;\)V$')
+]
+
 
 def isThisMethods(method, name, returnval, parameters):
     if method.name != name:
@@ -217,6 +222,19 @@ def isSuperInvoked(method):
             return True
 
     return False
+
+def isAlertDialogBuilderInstantiated(method):
+    currentmatch = 0
+
+    for l in method.getCleanLines():
+        if findAlertDialogInstance_pattern_lines[currentmatch].match(l):
+            currentmatch += 1
+
+        if currentmatch >= len(findAlertDialogInstance_pattern_lines):
+            return True
+
+    return False
+
 
 def isThereAnyBundleProtection(method):
     for l in method.getCleanLines():
@@ -416,6 +434,7 @@ def superCalledOnAllMethods(methods):
     for k in methods:
         # Super invokation analysis
         if not isSuperInvoked(k):
+
             missingSuper.append(k)
             #if k in loadInstanceDeclaration:
             #    loadInvokeSuper += 1
@@ -425,24 +444,31 @@ def superCalledOnAllMethods(methods):
     #print('%s (%s). Load: %d/%d. Save: %d/%d.' % (clazz.getBaseName().replace('/', '.'), rootparent.split('/')[-1], loadInvokeSuper, len(loadInstanceDeclaration), saveInvokeSuper, len(saveInstanceDeclaration)))
     return missingSuper
 
+# Return the onCreateDialog methods which are invoking the AlertDialog builder...
+def alertDialogBuilderInvokedOn(methods):
+    invokedOn = []
+
+    for k in methods:
+        if isThisMethods(k, 'onCreateDialog', 'Landroid/app/Dialog;', ['Landroid/os/Bundle;']):
+            if isAlertDialogBuilderInstantiated(k):
+                invokedOn.append(k)
+
+    return invokedOn
 
 
 if __name__ == '__main__':
-    #path = "/Users/vince/Downloads/Kontak"
-    #path = "/Users/vince/Downloads/Kontak9"
-    #path = "/Users/vince/Temp/SW_072516d"           #V1
-    #path = "/Users/vince/Temp/SW_5b66df5"           #V2
-    #path = "/Users/vince/Temp/SW_master"           #V2
-
     parser = argparse.ArgumentParser(description='Search for instance state errors')
     parser.add_argument('smali', type=str, help='Folder containing smali files')
+    parser.add_argument('--only-positives', '-p', action='store_true', help='Display only suspicious elements')
     parser.add_argument('--header', '-H', action='store_true', help='Print the CSV header')
+    parser.add_argument('--exclude-lists', '-e', type=str, nargs='*', help='Files containing excluded lits')
+    parser.add_argument('--include-lists', '-i', type=str, nargs='*', help='Files containing included lits')
 
     args = parser.parse_args()
     path = args.smali
 
     project = smali.SmaliProject.SmaliProject()
-    project.parseProject(path)
+    project.parseProject(path, None, args.exclude_lists, args.include_lists)
 
     if args.header:
         print('Apk, Suspicious, Class, nb_fields, nb_load_access, nb_write_access, nb_oncreate_meth, nb_bundle_access, P3_bundle_access_protection, P4a_all_read_write, P4b_type_check, P2_super_calling')
@@ -465,7 +491,8 @@ if __name__ == '__main__':
         #print(clazz.name, '\n')
 
         line.append(path)
-        line.append(clazz.getBaseName())
+        #line.append(clazz.getBaseName())
+        line.append(clazz.name)
         line.append('%d'%len(clazz.fields))  # nb fields
         line.append('%d'%len(loadInstanceDeclaration))  # nb load methods
         line.append('%d'%len(saveInstanceDeclaration))  # nb save methods
@@ -505,13 +532,18 @@ if __name__ == '__main__':
         line.append(':'.join(r))
 
         # PATTERN 2 -- Are we calling super methods?
-        r = superCalledOnAllMethods(loadInstanceDeclaration + saveInstanceDeclaration)
+        ## But before, let's check for FragmentDialog > onCreateDialog if we are using the AlertDialog.Builder handler...
+        analyze_these = loadInstanceDeclaration + saveInstanceDeclaration
+        #for meth in alertDialogBuilderInvokedOn(analyze_these):
+        #    analyze_these.remove(meth)
+
+        r = superCalledOnAllMethods(analyze_these)
         line.append(':'.join(['%s(%s)'%(rr.name, ''.join(rr.params)) for rr in r]))
 
         for l in line[7:]:
             if len(l.strip()) > 0:
                 suspiciousCount += 1
 
-        line.insert(0, '+' if suspiciousCount > 0 else '-')
-
-        print(','.join(line))
+        if not args.only_positives or suspiciousCount > 0:
+            line.insert(0, '+' if suspiciousCount > 0 else '-')
+            print(','.join(line))
