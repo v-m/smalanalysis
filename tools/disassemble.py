@@ -5,6 +5,8 @@ import os
 import zipfile
 import re
 
+COMPRESSION_METHOD = zipfile.ZIP_DEFLATED
+
 def zipdir(path, smalizip):
     for root, dirs, files in os.walk(path):
         for file in files:
@@ -16,7 +18,7 @@ def zipdir(path, smalizip):
 
             smalizip.write(pth, pthinzip)
 
-def runSmali(apkpath, smalipath, overwrite=False, buildZip=False):
+def runSmali(apkpath, smalipath, overwrite=False, buildZip=False, mergeFolders=True):
     if os.path.exists(smalipath):
         if overwrite:
             if os.path.isfile(smalipath):
@@ -45,18 +47,19 @@ def runSmali(apkpath, smalipath, overwrite=False, buildZip=False):
     z.close()
 
     if buildZip:
-        with zipfile.ZipFile(smalipath, 'w') as smalizip:
+        with zipfile.ZipFile(smalipath, 'w', compression=COMPRESSION_METHOD) as smalizip:
             for dir in dexesfolder:
                 zipdir(dir, smalizip)
                 shutil.rmtree(dir)
     else:
-        os.mkdir(smalipath)
+        if mergeFolders:
+            os.mkdir(smalipath)
 
-        for dir in dexesfolder:
-            for sdir in os.listdir(dir):
-                shutil.move('/'.join([dir, sdir]), '/'.join([smalipath, sdir]))
+            for dir in dexesfolder:
+                for sdir in os.listdir(dir):
+                    shutil.move('/'.join([dir, sdir]), '/'.join([smalipath, sdir]))
 
-            shutil.rmtree(dir)
+                shutil.rmtree(dir)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Extract smali content.')
@@ -68,16 +71,19 @@ if __name__ == '__main__':
                         help='Delete all previous exportation')
     parser.add_argument('--folder', '-f', action='store_true',
                         help='Disassemble in a folder instead than a ZIP file')
+    parser.add_argument('--dont-merge', '-D', action='store_true',
+                        help='If --folder, don\'t merge back all dexes in one folder')
 
     args = parser.parse_args()
 
     apkpath = args.apkpath
     output = args.output
     dofolder = args.folder
+    dontmerge = args.dont_merge
 
     if output is None:
         output = '%s.smali'%apkpath
 
     overwrite = args.overwrite
 
-    runSmali(apkpath, output, overwrite, not dofolder)
+    runSmali(apkpath, output, overwrite, not dofolder, not dontmerge)
