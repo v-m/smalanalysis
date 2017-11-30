@@ -13,10 +13,12 @@ import io
 
 class MATCHERS:
     obj = "(\\[*(L[a-zA-Z0-9/_$\\-]+;|Z|B|S|C|I|J|F|D|V))"
-    method = re.compile("\\.method( [a-z \\-]+?)*( [a-zA-Z0-9<>_$\\-]+){1}\\((.*)\\)(.*)")
+    method_reg = re.compile("\\.method( [a-z \\-]+?)*( [a-zA-Z0-9<>_$\\-]+){1}\\((.*)\\)(.*)") #Without obfuscation
+    method = re.compile("\\.method( [a-z \\-]+?)*( [^ ]+){1}\\((.*)\\)(.*)")
     method_param = re.compile("%s"%obj)
     field_init = re.compile("%s( = .*)"%obj)
-    fields = re.compile("\\.field( [a-z ]+)*( [a-zA-Z0-9_$\\-]*)+?:(.*)")
+    fields_reg = re.compile("\\.field( [a-z ]+)*( [a-zA-Z0-9_$\\-]*)+?:(.*)")       #Without obfuscation
+    fields = re.compile("\\.field( [a-z ]+)*( [^ ]*)+:([^:]*)")
     clazz = re.compile("\\.class( [a-z ]+)*( [a-zA-Z][a-zA-Z0-9_\\-/$]*)+?;")
     annotation = re.compile("\\.annotation( [a-z ]+)*( L[a-zA-Z0-9_/$]*);")
     ressource_classes = re.compile("^.*/R(\\$[a-z]+)?\\.smali$")

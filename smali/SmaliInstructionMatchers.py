@@ -6,9 +6,17 @@ import re
 
 INVOKE_SUPER = re.compile("^invoke-super(/range)? \{[pv0-9,. ]*?\}, (.*)->(.*)\((.*)\)(.*)$")
 INVOKE_VIRTUAL_DIRECT = re.compile("^invoke-(virtual|direct) \{([pv0-9, ]*?)\}, (.*)->(.*)\((.*)\)(.*)$")
-INVOKE_VIRTUAL_BUNDLE_ACCESSES = re.compile("^invoke-virtual \{(p[0-9]+?), ([pv][0-9]+?)(, [pv][0-9]+?)?\}, Landroid/os/Bundle;->(get|put)(.*)\(.*\)(.*)$")
-INVOKE_VIRTUAL_BUNDLE_ACCESSES_ARRAY = re.compile("^invoke-virtual \{(p[0-9]+?), ([pv][0-9]+?)\}, Landroid/os/Bundle;->(get|put)(.*)\(.*\)(.*)$")
-CONST_STRING_INSTRUCTION = re.compile("^const-string (v[0-9]+?), \"(.*)\"$")
+INVOKE_VIRTUAL_BUNDLE_ACCESSES = re.compile("^invoke-virtual \{([0-9pv, ]*)\}, Landroid/os/Bundle;->(get|put)(.*)\((.*)\)(.*)$")
+CONST_STRING_INSTRUCTION = re.compile("^const-string(/jumbo)? (v[0-9]+?), \"(.*)\"$")
+
+
+class VIRTUAL_INVOCATION_ENTRIES:
+    DYNAMICALLY_OBTAINED = 'dynamic'
+    METHOD = 'method'
+    TYPE = 'type'
+    PARAMETERS = 'params'
+    RETURN = 'ret'
+    REGISTERS = 'registers'
 
 def matchSuperInvocation(smaliline):
     match  = INVOKE_SUPER.match(smaliline.strip())
@@ -28,28 +36,27 @@ def matchVirtualOrDirectInvocation(smaliline):
     return match.groups()
 
 
-def matchVirtualInvocationBundleAccesses(smaliline, defregister = 'p1'):
+def matchVirtualInvocationBundleAccesses(smaliline, defregister):
     #print(smaliline.strip())
     match  = INVOKE_VIRTUAL_BUNDLE_ACCESSES.match(smaliline.strip())
 
-    if match is None:
-        match = INVOKE_VIRTUAL_BUNDLE_ACCESSES_ARRAY.match(smaliline.strip())
+    if match is not None:
+        registers = match.groups()[0].replace(' ', '').split(',')
+        _, method, operation, params, ret = match.groups()
 
-        if match is None:
-            return None
-        else:
-            gs = list(match.groups())
-    else:
-        gs = list(match.groups())
-        del(gs[2])
+        r = {
+            VIRTUAL_INVOCATION_ENTRIES.METHOD: method,
+            VIRTUAL_INVOCATION_ENTRIES.TYPE: operation,
+            VIRTUAL_INVOCATION_ENTRIES.PARAMETERS: params,
+            VIRTUAL_INVOCATION_ENTRIES.RETURN: ret,
+            VIRTUAL_INVOCATION_ENTRIES.REGISTERS: registers
+        }
 
-    if gs[0] == defregister:
-        return gs[1:]
-    else:
-        return None
+        if r[VIRTUAL_INVOCATION_ENTRIES.REGISTERS][0] == defregister:
+            r[VIRTUAL_INVOCATION_ENTRIES.REGISTERS] = r[VIRTUAL_INVOCATION_ENTRIES.REGISTERS][1:]
+            return r
 
-    #print('>>> ', smaliline)
-    #return match.groups()
+    return None
 
 
 def affectingString(smaliline):

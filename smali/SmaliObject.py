@@ -379,6 +379,9 @@ class SmaliMethod(SmaliWithLines):
         self.ret = ret
 
     def __eq__(self, other):
+        if not isinstance(type(other), type(self)):
+            return False
+
         if self.ret != other.ret or not compareListsSameposition(self.params, other.params):
             return False
 
