@@ -844,7 +844,7 @@ def process_details(args, dentry, SEP):
 
         for b in bac:
             if b['dynamic']:
-                lines.append('\t\t\t* [DYN] %s' % (b))
+                lines.append('\t\t\t\t: [DYN] %s' % (b))
             else:
                 name = b['registers'][0]
 
