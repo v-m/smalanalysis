@@ -7,6 +7,7 @@ import re
 INVOKE_SUPER = re.compile("^invoke-super(/range)? \{[pv0-9,. ]*?\}, (.*)->(.*)\((.*)\)(.*)$")
 INVOKE_VIRTUAL_DIRECT = re.compile("^invoke-(virtual|direct) \{([pv0-9, ]*?)\}, (.*)->(.*)\((.*)\)(.*)$")
 INVOKE_VIRTUAL_BUNDLE_ACCESSES = re.compile("^invoke-virtual \{([0-9pv, ]*)\}, Landroid/os/Bundle;->(get|put)(.*)\((.*)\)(.*)$")
+INVOKE_VIRTUAL_PARCELABLE_ACCESSES = re.compile("^invoke-virtual \{([0-9pv, ]*)\}, Landroid/os/Parcelable;->(get|put)(.*)\((.*)\)(.*)$")
 CONST_STRING_INSTRUCTION = re.compile("^const-string(/jumbo)? (v[0-9]+?), \"(.*)\"$")
 
 
@@ -36,9 +37,9 @@ def matchVirtualOrDirectInvocation(smaliline):
     return match.groups()
 
 
-def matchVirtualInvocationBundleAccesses(smaliline, defregister):
+def matchVirtualInvocationContainerAccesses(smaliline, defregister, matcher = INVOKE_VIRTUAL_BUNDLE_ACCESSES):
     #print(smaliline.strip())
-    match  = INVOKE_VIRTUAL_BUNDLE_ACCESSES.match(smaliline.strip())
+    match  = matcher.match(smaliline.strip())
 
     if match is not None:
         registers = match.groups()[0].replace(' ', '').split(',')
