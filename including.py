@@ -20,6 +20,8 @@ if __name__ == '__main__':
                         help='The app package name')
     parser.add_argument('--onlyapppackage', '-P', action='store_true',
                         help='Includes only classes in the app package')
+    parser.add_argument('--include-unpackaged', '-U', action='store_true',
+                        help='Includes classes which are not in a package')
     parser.add_argument('--exclude-lists', '-e', type=str, nargs='*',
                         help='Files containing exclude lists')
     parser.add_argument('--include-lists', '-i', type=str, nargs='*',
@@ -39,8 +41,11 @@ if __name__ == '__main__':
     if args.include_lists:
         print("Considering classes included in these files: %s"%args.include_lists)
 
+    if args.include_unpackaged:
+        print("Including apps outside of any package...")
+
     run = smali.SmaliProject.SmaliProject()
-    run.parseProject(args.smali, pkg, args.exclude_lists, args.include_lists)
+    run.parseProject(args.smali, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged)
 
     included = set()
     for c in run.classes:
@@ -90,15 +95,18 @@ if __name__ == '__main__':
         if pkg is not None and pakg != args.pkg:
             why = "NOT IN APP PKG"
 
-        for excllist in skips:
-            for p in skips[excllist]:
-                if p in pakg:
-                    why = 'EXCLUDED BY %s'%excllist
+        if pakg is not None:
+            for excllist in skips:
+                for p in skips[excllist]:
+                    if p in pakg:
+                        why = 'EXCLUDED BY %s'%excllist
 
-        for incllist in includes:
-            for p in includes[incllist]:
-                if p in pakg:
-                    why = 'INCLUDED BY %s' % incllist
+            for incllist in includes:
+                for p in includes[incllist]:
+                    if p in pakg:
+                        why = 'INCLUDED BY %s' % incllist
+        else:
+            why = 'flag -U %sset' % ('' if args.include_unpackaged else 'not ')
 
         for clazz in pakgs[pakg]:
             if clazz[1]:

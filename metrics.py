@@ -45,11 +45,11 @@ def skipThisClass(skips, clazz):
 
     return False
 
-def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None):
+def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None, includeUnpackaged = False):
     old = smali.SmaliProject.SmaliProject()
-    old.parseProject(v1, pkg, excludeListFiles, includeListFiles)
+    old.parseProject(v1, pkg, excludeListFiles, includeListFiles, includeUnpackaged)
     new = smali.SmaliProject.SmaliProject()
-    new.parseProject(v2, pkg, excludeListFiles, includeListFiles)
+    new.parseProject(v2, pkg, excludeListFiles, includeListFiles, includeUnpackaged)
 
     E, R, C = 0, 0, 0
     MA, MD, MC, MR = 0, 0, 0, 0
@@ -119,7 +119,9 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', '-v', action='store_true',
                         help='Show metrics details')
     parser.add_argument('--onlyapppackage', '-P', action='store_true',
-                        help='Includes only classes in the app package')
+                        help='Includes only classes in the app package specified')
+    parser.add_argument('--include-unpackaged', '-U', action='store_true',
+                        help='Includes classes which are not in a package')
     parser.add_argument('--exclude-lists', '-e', type=str, nargs='*',
                         help='Files containing excluded lits')
     parser.add_argument('--include-lists', '-i', type=str, nargs='*',
@@ -137,7 +139,7 @@ if __name__ == '__main__':
     if args.verbose and args.exclude_lists:
         print("Ignoring classes includes in these files: %s"%args.exclude_lists)
 
-    oldclasses,newclasses,E,R,C,CA,CD,CC,MA,MD,MC,MR,FA,FD,FC,FR = computeMetrics(args.smaliv1, args.smaliv2, pkg, args.exclude_lists, args.include_lists)
+    oldclasses,newclasses,E,R,C,CA,CD,CC,MA,MD,MC,MR,FA,FD,FC,FR = computeMetrics(args.smaliv1, args.smaliv2, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged)
 
     if args.verbose:
         print("v0 has %d classes, v1 has %d classes."%(oldclasses, newclasses))
