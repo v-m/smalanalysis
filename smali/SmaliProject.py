@@ -42,11 +42,8 @@ class SmaliProject(object):
         pass
 
     @staticmethod
-    def shouldAnalyzeThisClass(classname, skips = None, includes = None, default = True, include_nopackage = False):
+    def shouldAnalyzeThisClass(classname, skips = None, includes = None, default = True):
         clazz = classname
-
-        if '/' not in clazz and not include_nopackage:
-            return False
 
         if '/' in classname:
             clazz = classname.replace('/', '.')
@@ -86,7 +83,7 @@ class SmaliProject(object):
         return rules
 
     @staticmethod
-    def parseFolderLoop(f, target, package = None, root = None, skips = None, includes = None, includeUnpackaged = False):
+    def parseFolderLoop(fbase, f, target, package = None, root = None, skips = None, includes = None, includeUnpackaged = False):
         if f[-1] == '/':
             f = f[:-1]
 
@@ -94,12 +91,15 @@ class SmaliProject(object):
             root = f
 
         for ff in os.listdir(f):
-            fullpath = '%s%c%s' % (f, os.sep, ff)
+            fullpath = os.path.join(f, ff)
+            relpath = fullpath[len(fbase):]
+            while len(relpath) > 0 and relpath[0] == '/':
+                relpath = relpath[1:]
 
             if os.path.isdir(fullpath):
-                SmaliProject.parseFolderLoop(fullpath, target, package, root, skips, includes, includeUnpackaged)
+                SmaliProject.parseFolderLoop(fbase, fullpath, target, package, root, skips, includes, includeUnpackaged)
             else:
-                op =  SmaliProject.keepThisFile(fullpath, package, includes, skips, includeUnpackaged)
+                op = SmaliProject.keepThisFile(relpath, package, includes, skips, includeUnpackaged)
 
                 if op == 1:
                     fp = open(fullpath, 'r')
@@ -127,8 +127,11 @@ class SmaliProject(object):
             if MATCHERS.ressource_classes.match(fullpath):
                 return 2
 
+            if '/' not in fullpath:
+                return 1 if includeUnpackaged else 0
+
             if (skips is not None or includes is not None):
-                skip = not SmaliProject.shouldAnalyzeThisClass(fullpath, skips, includes, not skip, includeUnpackaged)
+                skip = not SmaliProject.shouldAnalyzeThisClass(fullpath, skips, includes, not skip)
 
             if fullpath.endswith('/BuildConfig.smali'):
                 skip = True
@@ -155,7 +158,7 @@ class SmaliProject(object):
             zp = zipfile.ZipFile(folder, 'r')
             SmaliProject.parseZipLoop(zp, self, package, skips=skips, includes=includes, includeUnpackaged = includeUnpackaged)
         else:
-            SmaliProject.parseFolderLoop(folder, self, package, skips=skips, includes=includes, includeUnpackaged = includeUnpackaged)
+            SmaliProject.parseFolderLoop(folder, folder, self, package, skips=skips, includes=includes, includeUnpackaged = includeUnpackaged)
 
     @staticmethod
     def parseZipLoop(zp, target, package=None, skips=None, includes=None, includeUnpackaged = False):

@@ -52,7 +52,7 @@ if __name__ == '__main__':
         included.add(c.name)
 
     all = smali.SmaliProject.SmaliProject()
-    all.parseProject(args.smali, None, None, None)
+    all.parseProject(args.smali, None, None, None, True)
 
     pattern = re.compile('L(.*)/(.*);')
     nopakgpattern = re.compile('L([^/]*);')
