@@ -379,7 +379,7 @@ class SmaliMethod(SmaliWithLines):
         self.ret = ret
 
     def __eq__(self, other):
-        if not isinstance(type(other), type(self)):
+        if not isinstance(other, SmaliMethod) or not isinstance(self, SmaliMethod):
             return False
 
         if self.ret != other.ret or not compareListsSameposition(self.params, other.params):
@@ -611,6 +611,8 @@ class SmaliClass(SmaliAnnotableModifiable):
                     elif diff[0] == NOT_SAME_NAME and meth.moreThanNInstruction(1):
                         op = [m, ChangesTypes.RENAMED_METHOD]
                 if op is None and meth.name == m.name:
+                    # More than one change but they have the same source code,
+                    # so we can suppose they are the same changed methods...
                     op = [m, ChangesTypes.SAME_NAME]
 
                 if op is not None:

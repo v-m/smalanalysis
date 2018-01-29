@@ -24,7 +24,7 @@ class BasicMetricTesting(unittest.TestCase):
         oldclasses_alg, newclasses_alg, E_alg, R_alg, C_alg, CA_alg, CD_alg, CC_alg, MA_alg, MD_alg, MC_alg, MR_alg, FA_alg, FD_alg, FC_alg, FR_alg = \
             metrics.computeMetrics('%s/src/%s' % (BasicMetricTesting.getTestFolder(), v1),
                                '%s/src/%s' % (BasicMetricTesting.getTestFolder(), v2),
-                               None)
+                               None, includeUnpackaged=True)
 
         self.assertEqual(oldclasses, oldclasses_alg)
         self.assertEqual(newclasses, newclasses_alg)
