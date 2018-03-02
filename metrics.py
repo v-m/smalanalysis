@@ -45,7 +45,7 @@ def skipThisClass(skips, clazz):
 
     return False
 
-def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None, includeUnpackaged = False, diffOpOnly = True):
+def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None, includeUnpackaged = False, diffOpOnly = True, aggregateOps = False):
     old = smali.SmaliProject.SmaliProject()
     old.parseProject(v1, pkg, excludeListFiles, includeListFiles, includeUnpackaged)
     new = smali.SmaliProject.SmaliProject()
@@ -115,12 +115,16 @@ def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None, in
                     if diffOpOnly:
                         l = list(map(lambda x : x.split(' ')[0], l))
                     for cmd in l:
+                        if aggregateOps:
+                            cmd = cmd.split('/')[0].split('-')[0]
                         addedLines.add(cmd)
 
                     l = set(rrr[0].getCleanLines()) - set(rrr[1].getCleanLines())
                     if diffOpOnly:
                         l = list(map(lambda x: x.split(' ')[0], l))
                     for cmd in l:
+                        if aggregateOps:
+                            cmd = cmd.split('/')[0].split('-')[0]
                         removedLines.add(cmd)
 
 
@@ -142,13 +146,14 @@ if __name__ == '__main__':
                         help='Includes only classes in the app package specified')
     parser.add_argument('--fulllinesofcode', '-f', action='store_true',
                         help='Show full lines instead of opcodes for differences')
+    parser.add_argument('--aggregateoperators', '-a', action='store_true',
+                        help='Aggregate the operator by their first keywork.')
     parser.add_argument('--include-unpackaged', '-U', action='store_true',
                         help='Includes classes which are not in a package')
     parser.add_argument('--exclude-lists', '-e', type=str, nargs='*',
                         help='Files containing excluded lits')
     parser.add_argument('--include-lists', '-i', type=str, nargs='*',
                         help='Files containing included lits')
-
 
     args = parser.parse_args()
 
@@ -161,7 +166,12 @@ if __name__ == '__main__':
     if args.verbose and args.exclude_lists:
         print("Ignoring classes includes in these files: %s"%args.exclude_lists)
 
-    oldclasses,newclasses,E,R,C,CA,CD,CC,MA,MD,MC,MRev,MR,FA,FD,FC,FR,addedLines,removedLines = computeMetrics(args.smaliv1, args.smaliv2, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged, not args.fulllinesofcode)
+    if args.aggregateoperators and args.fulllinesofcode:
+        print("Aggregation and full lines cannot be enabled at the same time!")
+        sys.exit(1)
+
+    oldclasses,newclasses,E,R,C,CA,CD,CC,MA,MD,MC,MRev,MR,FA,FD,FC,FR,addedLines,removedLines = computeMetrics(args.smaliv1, args.smaliv2, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged, not args.fulllinesofcode, args.aggregateoperators)
+
 
     if args.verbose:
         print("v0 has %d classes, v1 has %d classes."%(oldclasses, newclasses))
