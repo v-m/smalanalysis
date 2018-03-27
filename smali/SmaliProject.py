@@ -54,6 +54,9 @@ class SmaliProject(object):
             else:
                 skip += 1
 
+        if keep == 0:
+            return True
+
         return skip / keep > 0.75
 
     @staticmethod
