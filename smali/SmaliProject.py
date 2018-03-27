@@ -41,6 +41,21 @@ class SmaliProject(object):
 
         pass
 
+
+    def isProjectObfuscated(self):
+        keep, skip = 0, 0
+
+        obfuscatedclassname = re.compile("(.*/)?[a-z]{1,3};")
+
+        for p in self.classes:
+            obfuscatedclass = obfuscatedclassname.fullmatch(p.name) is not None
+            if not obfuscatedclass:
+                keep += 1
+            else:
+                skip += 1
+
+        return skip / keep > 0.75
+
     @staticmethod
     def shouldAnalyzeThisClass(classname, skips = None, includes = None, default = True):
         clazz = classname

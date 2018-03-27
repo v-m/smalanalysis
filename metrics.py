@@ -45,11 +45,23 @@ def skipThisClass(skips, clazz):
 
     return False
 
+
+class ProjectObfuscatedException(Exception):
+    pass
+
+
 def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None, includeUnpackaged = False, diffOpOnly = True, aggregateOps = False):
     old = smali.SmaliProject.SmaliProject()
     old.parseProject(v1, pkg, excludeListFiles, includeListFiles, includeUnpackaged)
+
+    if old.isProjectObfuscated():
+        raise ProjectObfuscatedException()
+
     new = smali.SmaliProject.SmaliProject()
     new.parseProject(v2, pkg, excludeListFiles, includeListFiles, includeUnpackaged)
+
+    if new.isProjectObfuscated():
+        raise ProjectObfuscatedException()
 
     E, R, C = 0, 0, 0
     MA, MD, MR = 0, 0, 0
@@ -170,8 +182,11 @@ if __name__ == '__main__':
         print("Aggregation and full lines cannot be enabled at the same time!")
         sys.exit(1)
 
-    oldclasses,newclasses,E,R,C,CA,CD,CC,MA,MD,MC,MRev,MR,FA,FD,FC,FR,addedLines,removedLines = computeMetrics(args.smaliv1, args.smaliv2, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged, not args.fulllinesofcode, args.aggregateoperators)
-
+    try:
+        oldclasses,newclasses,E,R,C,CA,CD,CC,MA,MD,MC,MRev,MR,FA,FD,FC,FR,addedLines,removedLines = computeMetrics(args.smaliv1, args.smaliv2, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged, not args.fulllinesofcode, args.aggregateoperators)
+    except ProjectObfuscatedException:
+        print("This project is obfuscated. Unable to proceed.")
+        sys.exit(1)
 
     if args.verbose:
         print("v0 has %d classes, v1 has %d classes."%(oldclasses, newclasses))
