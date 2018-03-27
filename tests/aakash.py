@@ -9,15 +9,27 @@ import os
 import shutil
 import metrics
 #from metrics import computeMetrics
+import smali.SmaliProject
+from tests.diff_tests import BasicMetricTesting
+
 
 class TestUM(unittest.TestCase):
     @staticmethod
     def computeMetrics(v1, v2, pkg):
         testfold = TestUM.getTestFolder()
 
-        return metrics.computeMetrics('%s/%s'%(testfold, v1),
-                               '%s/%s' % (testfold, v2),
-                               pkg)
+        old = smali.SmaliProject.SmaliProject()
+        old.parseProject('%s/%s' % (testfold, v1), pkg)
+        new = smali.SmaliProject.SmaliProject()
+        new.parseProject('%s/%s' % (testfold, v2), pkg)
+
+        malg = {}
+
+        diff = old.differences(new, [])
+        metrics.initMetricsDict("", malg)
+        metrics.computeMetrics(diff, malg)
+
+        return malg
 
     @staticmethod
     def getTestFolder():
@@ -44,23 +56,8 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v1)
         TestUM.prepare(v2)
 
-        #global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
-
-        self.assertEqual(E, 0)
-        self.assertEqual(R, 0)
-        self.assertEqual(C, 0)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CD, 0)
-        self.assertEqual(CC, 0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MD, 0)
-        self.assertEqual(MC, 0)
-        self.assertEqual(MR, 0)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FD, 0)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FR, 0)
+        malg = TestUM.computeMetrics(v1, v2, pkg)
+        BasicMetricTesting.metricsScoreComparing(self, malg, {})
     
     def test_v2v3_renameingonemethod(self):
         pkg = 'com.example.xinyin.myapplication'
@@ -71,50 +68,20 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v1)
         TestUM.prepare(v2)
 
-        #global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
-
-        self.assertEqual(E, 0)
-        self.assertEqual(R, 0)
-        self.assertEqual(C, 1)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CD, 0)
-        self.assertEqual(CC, 1)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MD, 0)
-        self.assertEqual(MC, 0)
-        self.assertEqual(MR, 1)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FD, 0)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FR, 0)
+        malg = TestUM.computeMetrics(v1, v2, pkg)
+        BasicMetricTesting.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "MR": 1})
 
     def test_v3v4_renameingonefield(self):
         pkg = 'com.example.xinyin.myapplication'
         v1 = 'apks/app3.smali'
         v2 = 'apks/app4.smali'
 
-
         TestUM.prepare(v1)
         TestUM.prepare(v2)
 
-        #global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
+        malg = TestUM.computeMetrics(v1, v2, pkg)
+        BasicMetricTesting.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "FR": 1})
 
-        self.assertEqual(E, 0)
-        self.assertEqual(R, 0)
-        self.assertEqual(C, 1)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CD, 0)
-        self.assertEqual(CC, 1)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MD, 0)
-        self.assertEqual(MC, 0)
-        self.assertEqual(MR, 0)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FD, 0)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FR, 1)
 
     def test_v4v5_renameingonefield_String(self):
         pkg = 'com.example.xinyin.myapplication'
@@ -125,23 +92,9 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v1)
         TestUM.prepare(v2)
 
-        #global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
 
-        self.assertEqual(E, 0)
-        self.assertEqual(R, 0)
-        self.assertEqual(C, 1)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CD, 0)
-        self.assertEqual(CC, 1)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MD, 0)
-        self.assertEqual(MC, 0)
-        self.assertEqual(MR, 0)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FD, 0)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FR, 1)
+        malg = TestUM.computeMetrics(v1, v2, pkg)
+        BasicMetricTesting.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "FR": 1})
 
     def test_v5v6_changemethod(self):
         pkg = 'com.example.xinyin.myapplication'
@@ -152,23 +105,8 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v1)
         TestUM.prepare(v2)
 
-        #global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
-
-        self.assertEqual(E, 0)
-        self.assertEqual(R, 1)
-        self.assertEqual(C, 0)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CD, 0)
-        self.assertEqual(CC, 1)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MD, 0)
-        self.assertEqual(MC, 1)
-        self.assertEqual(MR, 0)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FD, 0)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FR, 0)
+        malg = TestUM.computeMetrics(v1, v2, pkg)
+        BasicMetricTesting.metricsScoreComparing(self, malg, {"R": 1, "CC": 1, "MC": 1})
 
     def test_v6v7_renameingonefield(self):
         pkg = 'com.example.xinyin.myapplication'
@@ -179,23 +117,9 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v1)
         TestUM.prepare(v2)
 
-        #global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
+        malg = TestUM.computeMetrics(v1, v2, pkg)
+        BasicMetricTesting.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "FR": 1})
 
-        self.assertEqual(E, 0)
-        self.assertEqual(R, 0)
-        self.assertEqual(C, 1)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CD, 0)
-        self.assertEqual(CC, 1)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MD, 0)
-        self.assertEqual(MC, 0)
-        self.assertEqual(MR, 0)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FD, 0)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FR, 1)
  
 
     def test_v11v12_constructor_method_change(self):
@@ -207,24 +131,9 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v1)
         TestUM.prepare(v2)
 
+        malg = TestUM.computeMetrics(v1, v2, pkg)
+        BasicMetricTesting.metricsScoreComparing(self, malg, {"R": 1, "CC": 1, "MC": 1})
 
-        #global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
-
-        self.assertEqual(E, 0)
-        self.assertEqual(R, 1)
-        self.assertEqual(C, 0)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CD, 0)
-        self.assertEqual(CC, 1)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MD, 0)
-        self.assertEqual(MC, 1)
-        self.assertEqual(MR, 0)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FD, 0)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FR, 0)
 
 
     def test_v12v13_method_change_and_call_method(self):
@@ -236,602 +145,9 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v1)
         TestUM.prepare(v2)
 
-        #global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
+        malg = TestUM.computeMetrics(v1, v2, pkg)
+        BasicMetricTesting.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "MC": 2})
 
-        self.assertEqual(E, 0)
-        self.assertEqual(R, 0)
-        self.assertEqual(C, 1)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CD, 0)
-        self.assertEqual(CC, 1)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MD, 0)
-        self.assertEqual(MC, 2)
-        self.assertEqual(MR, 0)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FD, 0)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FR, 0)
-'''
-    def test_v1v2(self):
-        pkg = 'com.example.aakash.versiona'
-        v1 = 'apks/Version1.smali'
-        v2 = 'apks/Version2.smali'
-
-        TestUM.prepare(v1)
-        TestUM.prepare(v2)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, MR, FA, FD, FC, FR = TestUM.computeMetrics(v1, v2, pkg)
-
-        self.assertEqual(E, 1)
-        self.assertEqual(R, 0)
-        self.assertEqual(C, 0)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CD, 0)
-        self.assertEqual(CC, 1)
-        self.assertEqual(MA, 3)
-        self.assertEqual(MD, 0)
-        self.assertEqual(MC, 0)
-        self.assertEqual(MR, 0)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FD, 0)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FR, 0)
-
-    def test_v2v3(self):
-        pkg = 'com.example.aakash.versiona'
-        v2 = 'apks/Version2.smali'
-        v3 = 'apks/Version3.smali'
-
-        TestUM.prepare(v2)
-        TestUM.prepare(v3)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(v2, v3, pkg)
-
-        self.assertEqual(E, 0)
-        self.assertEqual(R, 0)
-        self.assertEqual(C, 1)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CD, 0)
-        self.assertEqual(CC, 1)
-        self.assertEqual(MA, 1)
-        self.assertEqual(MD, 1)
-        self.assertEqual(MC, 2)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FD, 0)
-        self.assertEqual(FC, 0)
-
-    def test_v3v4(self):
-        pkg = 'com.example.aakash.versiona'
-        v3 = 'apks/Version3.smali'
-        v4 = 'apks/Version4.smali'
-
-        TestUM.prepare(v3)
-        TestUM.prepare(v4)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(v3, v4, pkg)
-
-        self.assertEqual(E, 0)
-        self.assertEqual(R, 0)
-        self.assertEqual(C, 1)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CC, 1)
-        self.assertEqual(CD, 0)
-        self.assertEqual(MA, 1)
-        self.assertEqual(MC, 1)
-        self.assertEqual(MD, 1)
-        self.assertEqual(FA, 2)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 0)
-
-    def test_v4v5(self):
-        pkg = 'com.example.aakash.versiona'
-        v4 = 'apks/Version4.smali'
-        v5 = 'apks/Version5.smali'
-
-        TestUM.prepare(v4)
-        TestUM.prepare(v5)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(v4, v5, pkg)
-
-        self.assertEqual(E, 0)
-        self.assertEqual(R, 0)
-        self.assertEqual(C, 1)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CC, 1)
-        self.assertEqual(CD, 0)
-        self.assertEqual(MA, 2)
-        self.assertEqual(MC, 1)
-        self.assertEqual(MD, 2)
-        self.assertEqual(FA, 1)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 1)
-
-    def test_v5v6(self):
-        pkg = 'com.example.aakash.versiona'
-        v5 = 'apks/Version5.smali'
-        v6 = 'apks/Version6.smali'
-
-        TestUM.prepare(v5)
-        TestUM.prepare(v6)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(v5, v6, pkg)
-
-        self.assertEqual(E, 0)
-        self.assertEqual(R, 0)
-        self.assertEqual(C, 1)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CC, 1)
-        self.assertEqual(CD, 0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MC, 3)
-        self.assertEqual(MD, 1)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 0)
-
-    def test_v6v7(self):
-        pkg = 'com.example.aakash.versiona'
-        v6 = 'apks/Version6.smali'
-        v7 = 'apks/Version7.smali'
-
-        TestUM.prepare(v6)
-        TestUM.prepare(v7)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(v6, v7, pkg)
-
-        self.assertEqual(E, 0)
-        self.assertEqual(R, 0)
-        self.assertEqual(C, 1)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CC, 1)
-        self.assertEqual(CD, 0)
-        self.assertEqual(MA, 6)
-        self.assertEqual(MC, 3)
-        self.assertEqual(MD, 1)
-        self.assertEqual(FA, 6)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 1)
-
-    def test_v7v8(self):
-        pkg = 'com.example.aakash.versiona'
-        v7 = 'apks/Version7.smali'
-        v8 = 'apks/Version8.smali'
-
-        TestUM.prepare(v7)
-        TestUM.prepare(v8)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(v7, v8, pkg)
-
-        self.assertEqual(E, 0)
-        self.assertEqual(R, 0)
-        self.assertEqual(C, 1)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CC, 1)
-        self.assertEqual(CD, 0)
-        self.assertEqual(MA, 2)
-        self.assertEqual(MC, 3)
-        self.assertEqual(MD, 6)
-        self.assertEqual(FA, 2)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 6)
-
-    def test_v8v9(self):
-        pkg = 'com.example.aakash.versiona'
-        v8 = 'apks/Version8.smali'
-        v9 = 'apks/Version9.smali'
-
-        TestUM.prepare(v8)
-        TestUM.prepare(v9)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(v8, v9, pkg)
-
-        self.assertEqual(E, 0)
-        self.assertEqual(R, 0)
-        self.assertEqual(C, 1)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CC, 1)
-        self.assertEqual(CD, 0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MC, 2)
-        self.assertEqual(MD, 2)
-        self.assertEqual(FA, 5)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 3)
-
-    # def test_v9v10(self):
-    # 	pkg = 'com.example.aakash.versiona'
-    # 	v9 = 'Version9.smali'
-    # 	v10 = 'Version10.smali'
-
-    #   TestUM.prepare(v9)
-    #   TestUM.prepare(v10)
-
-    # 	global Len_OldClass,len_newclass,E,R,C,CA,CD,CC,MA,MD,MC,FA,FD,FC
-    # 	Len_OldClass,len_newclass,E,R,C,CA,CD,CC,MA,MD,MC,FA,FD,FC=computeMetrics(v9,v10,pkg)
-
-    # 	self.assertEqual(E,1)
-    # 	self.assertEqual(R,0)
-    # 	self.assertEqual(C,0)
-    # 	self.assertEqual(CA,0)
-    # 	self.assertEqual(CC,1)
-    # 	self.assertEqual(CD,0)
-    # 	self.assertEqual(MA,0)
-    # 	self.assertEqual(MC,1)
-    # 	self.assertEqual(MD,2)
-    # 	self.assertEqual(FA,5)
-    # 	self.assertEqual(FC,0)
-    # 	self.assertEqual(FD,3)
-
-    def test_vavb(self):
-        pkg = 'com.example.aakash.versiona'
-        va = 'apks/Versiona.smali'
-        vb = 'apks/Versionb.smali'
-
-        TestUM.prepare(va)
-        TestUM.prepare(vb)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(va, vb, pkg)
-
-        # self.assertEqual(E,0)
-        # self.assertEqual(R,0)
-        # self.assertEqual(C,1)
-        # self.assertEqual(CA,0)
-        # self.assertEqual(CC,1)
-        # self.assertEqual(CD,0)
-        self.assertEqual(MA, 1)
-        self.assertEqual(MC, 0)
-        self.assertEqual(MD, 0)
-        self.assertEqual(FA, 1)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 0)
-
-    def test_vbvc(self):
-        pkg = 'com.example.aakash.versiona'
-        vb = 'apks/Versionb.smali'
-        vc = 'apks/Versionc.smali'
-
-        TestUM.prepare(vb)
-        TestUM.prepare(vc)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(vb, vc, pkg)
-
-        self.assertEqual(E, 0)
-        self.assertEqual(R, 1)
-        self.assertEqual(C, 0)
-        self.assertEqual(CA, 0)
-        self.assertEqual(CC, 1)
-        self.assertEqual(CD, 0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MC, 1)
-        self.assertEqual(MD, 0)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 0)
-
-    def test_vcvd(self):
-        pkg = 'com.example.aakash.versiona'
-        vc = 'apks/Versionc.smali'
-        vd = 'apks/Versiond.smali'
-
-        TestUM.prepare(vc)
-        TestUM.prepare(vd)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(vc, vd, pkg)
-
-        # self.assertEqual(E,0)
-        # self.assertEqual(R,0)
-        # self.assertEqual(C,1)
-        # self.assertEqual(CA,0)
-        # self.assertEqual(CC,1)
-        # self.assertEqual(CD,0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MC, 1)
-        self.assertEqual(MD, 1)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FC, 1)
-        self.assertEqual(FD, 0)
-
-    def test_vave(self):
-        pkg = 'com.example.aakash.versiona'
-        va = 'apks/Versiona.smali'
-        ve = 'apks/Versione.smali'
-
-        TestUM.prepare(va)
-        TestUM.prepare(ve)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(va, ve, pkg)
-
-        # self.assertEqual(E,0)
-        # self.assertEqual(R,0)
-        # self.assertEqual(C,1)
-        # self.assertEqual(CA,0)
-        # self.assertEqual(CC,1)
-        # self.assertEqual(CD,0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MC, 1)
-        self.assertEqual(MD, 0)
-        self.assertEqual(FA, 1)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 0)
-
-    def test_vevf(self):
-        pkg = 'com.example.aakash.versiona'
-        ve = 'apks/Versione.smali'
-        vf = 'apks/Versionf.smali'
-
-        TestUM.prepare(ve)
-        TestUM.prepare(vf)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(ve, vf, pkg)
-
-        # self.assertEqual(E,0)
-        # self.assertEqual(R,0)
-        # self.assertEqual(C,1)
-        # self.assertEqual(CA,0)
-        # self.assertEqual(CC,1)
-        # self.assertEqual(CD,0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MC, 1)
-        self.assertEqual(MD, 0)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 0)
-
-    def test_vfvg(self):
-        pkg = 'com.example.aakash.versiona'
-        vf = 'apks/Versionf.smali'
-        vg = 'apks/Versiong.smali'
-
-        TestUM.prepare(vf)
-        TestUM.prepare(vg)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(vf, vg, pkg)
-
-        # self.assertEqual(E,0)
-        # self.assertEqual(R,0)
-        # self.assertEqual(C,1)
-        # self.assertEqual(CA,0)
-        # self.assertEqual(CC,1)
-        # self.assertEqual(CD,0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MC, 0)
-        self.assertEqual(MD, 0)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FC, 1)
-        self.assertEqual(FD, 0)
-
-    def test_vavh(self):
-        pkg = 'com.example.aakash.versiona'
-        va = 'apks/Versiona.smali'
-        vh = 'apks/Versionh.smali'
-
-        TestUM.prepare(va)
-        TestUM.prepare(vh)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(va, vh, pkg)
-
-        # self.assertEqual(E,0)
-        # self.assertEqual(R,0)
-        # self.assertEqual(C,1)
-        # self.assertEqual(CA,0)
-        # self.assertEqual(CC,1)
-        # self.assertEqual(CD,0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MC, 1)
-        self.assertEqual(MD, 0)
-        self.assertEqual(FA, 1)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 0)
-
-    def test_vhvi(self):
-        pkg = 'com.example.aakash.versiona'
-        vh = 'apks/Versionh.smali'
-        vi = 'apks/Versioni.smali'
-
-        TestUM.prepare(vh)
-        TestUM.prepare(vi)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(vh, vi, pkg)
-
-        # self.assertEqual(E,0)
-        # self.assertEqual(R,0)
-        # self.assertEqual(C,1)
-        # self.assertEqual(CA,0)
-        # self.assertEqual(CC,1)
-        # self.assertEqual(CD,0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MC, 1)
-        self.assertEqual(MD, 0)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 0)
-
-    def test_vavj(self):
-        pkg = 'com.example.aakash.versiona'
-        va = 'apks/Versiona.smali'
-        vj = 'apks/Versionj.smali'
-
-        TestUM.prepare(va)
-        TestUM.prepare(vj)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(va, vj, pkg)
-
-        # self.assertEqual(E,0)
-        # self.assertEqual(R,0)
-        # self.assertEqual(C,1)
-        # self.assertEqual(CA,0)
-        # self.assertEqual(CC,1)
-        # self.assertEqual(CD,0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MC, 1)
-        self.assertEqual(MD, 0)
-        self.assertEqual(FA, 1)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 0)
-
-    def test_vjvk(self):
-        pkg = 'com.example.aakash.versiona'
-        vj = 'apks/Versionj.smali'
-        vk = 'apks/Versionk.smali'
-
-        TestUM.prepare(vj)
-        TestUM.prepare(vk)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(vj, vk, pkg)
-
-        # self.assertEqual(E,0)
-        # self.assertEqual(R,0)
-        # self.assertEqual(C,1)
-        # self.assertEqual(CA,0)
-        # self.assertEqual(CC,1)
-        # self.assertEqual(CD,0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MC, 1)
-        self.assertEqual(MD, 0)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 0)
-
-    def test_vkvl(self):
-        pkg = 'com.example.aakash.versiona'
-        vk = 'apks/Versionk.smali'
-        vl = 'apks/Versionl.smali'
-
-        TestUM.prepare(vk)
-        TestUM.prepare(vl)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(vk, vl, pkg)
-
-        # self.assertEqual(E,0)
-        # self.assertEqual(R,0)
-        # self.assertEqual(C,1)
-        # self.assertEqual(CA,0)
-        # self.assertEqual(CC,1)
-        # self.assertEqual(CD,0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MC, 0)
-        self.assertEqual(MD, 0)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FC, 1)
-        self.assertEqual(FD, 0)
-
-    def test_vavm(self):
-        pkg = 'com.example.aakash.versiona'
-        va = 'apks/Versiona.smali'
-        vm = 'apks/Versionm.smali'
-
-        TestUM.prepare(va)
-        TestUM.prepare(vm)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(va, vm, pkg)
-
-        # self.assertEqual(E,0)
-        # self.assertEqual(R,0)
-        # self.assertEqual(C,1)
-        # self.assertEqual(CA,0)
-        # self.assertEqual(CC,1)
-        # self.assertEqual(CD,0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MC, 1)
-        self.assertEqual(MD, 0)
-        self.assertEqual(FA, 1)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 0)
-
-    def test_vmvn(self):
-        pkg = 'com.example.aakash.versiona'
-        vm = 'apks/Versionm.smali'
-        vn = 'apks/Versionn.smali'
-
-        TestUM.prepare(vm)
-        TestUM.prepare(vn)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(vm, vn, pkg)
-
-        # self.assertEqual(E,0)
-        # self.assertEqual(R,0)
-        # self.assertEqual(C,1)
-        # self.assertEqual(CA,0)
-        # self.assertEqual(CC,1)
-        # self.assertEqual(CD,0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MC, 1)
-        self.assertEqual(MD, 0)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 0)
-
-    def test_vnvo(self):
-        pkg = 'com.example.aakash.versiona'
-        vn = 'apks/Versionn.smali'
-        vo = 'apks/Versiono.smali'
-
-        TestUM.prepare(vn)
-        TestUM.prepare(vo)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(vn, vo, pkg)
-
-        # self.assertEqual(E,0)
-        # self.assertEqual(R,0)
-        # self.assertEqual(C,1)
-        # self.assertEqual(CA,0)
-        # self.assertEqual(CC,1)
-        # self.assertEqual(CD,0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MC, 0)
-        self.assertEqual(MD, 0)
-        self.assertEqual(FA, 0)
-        self.assertEqual(FC, 1)
-        self.assertEqual(FD, 0)
-
-    def test_vavp(self):
-        pkg = 'com.example.aakash.versiona'
-        va = 'apks/Versiona.smali'
-        vp = 'apks/Versionp.smali'
-
-        TestUM.prepare(va)
-        TestUM.prepare(vp)
-
-        global Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC
-        Len_OldClass, len_newclass, E, R, C, CA, CD, CC, MA, MD, MC, FA, FD, FC = TestUM.computeMetrics(va, vp, pkg)
-
-        # self.assertEqual(E,0)
-        # self.assertEqual(R,0)
-        # self.assertEqual(C,1)
-        # self.assertEqual(CA,0)
-        # self.assertEqual(CC,1)
-        # self.assertEqual(CD,0)
-        self.assertEqual(MA, 0)
-        self.assertEqual(MC, 0)
-        self.assertEqual(MD, 0)
-        self.assertEqual(FA, 1)
-        self.assertEqual(FC, 0)
-        self.assertEqual(FD, 0)
-'''
 
 if __name__ == '__main__':
     unittest.main()

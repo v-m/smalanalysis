@@ -2,12 +2,11 @@
 # Author: Vincenzo Musco (http://www.vmusco.com)
 # Creation date: 2017-09-15
 import argparse
-import sys
 import smali.SmaliObject
 import smali.ChangesTypes
 import smali.SmaliProject
 from smali import SmaliObject, ChangesTypes
-
+import sys
 
 def isEvolution(l):
     atLeastOne = False
@@ -24,6 +23,7 @@ def isEvolution(l):
 
     return atLeastOne
 
+
 def isRevision(l):
     for d in l:
         if d[2] is not smali.ChangesTypes.REVISED_METHOD:
@@ -31,8 +31,10 @@ def isRevision(l):
 
     return True
 
+
 def isChange(l):
     return len(l) > 0 and not isEvolution(l) and not isRevision(l)
+
 
 def skipThisClass(skips, clazz):
     if clazz[0][1] is not None:
@@ -50,39 +52,38 @@ class ProjectObfuscatedException(Exception):
     pass
 
 
-def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None, includeUnpackaged = False, diffOpOnly = True, aggregateOps = False):
-    old = smali.SmaliProject.SmaliProject()
-    old.parseProject(v1, pkg, excludeListFiles, includeListFiles, includeUnpackaged)
+def printName(m):
+    return "{}.{}".format(m.parent.getDisplayName(m.parent.name), m.getSignature())
 
-    if old.isProjectObfuscated():
-        raise ProjectObfuscatedException()
 
-    new = smali.SmaliProject.SmaliProject()
-    new.parseProject(v2, pkg, excludeListFiles, includeListFiles, includeUnpackaged)
+keys = ["#C-", "#C+", "E", "R", "C", "MA", "MD", "MR", "MC", "MRev", "FA", "FD", "FC", "FR", "CA", "CD", "CC"]
 
-    if new.isProjectObfuscated():
-        raise ProjectObfuscatedException()
 
-    E, R, C = 0, 0, 0
-    MA, MD, MR = 0, 0, 0
-    MC, MRev = 0, 0
-    FA, FD, FC, FR = 0, 0, 0, 0
-    CA, CD = 0, 0
+def initMetricsDict(key, ret):
+    for k in keys:
+        ret["{}{}".format(key, k)] = 0
+
+    ret["{}addedLines".format(key)] = set()
+    ret["{}removedLines".format(key)] = set()
+
+
+def computeMetrics(r, out, metricKey="", diffOpOnly=True, aggregateOps=False):
     changedclass = set()
-    addedLines = set()
-    removedLines = set()
-
-    r = old.differences(new, [])
 
     for rr in r:
         if rr[1] is None:
             # Class change level here...
             if rr[0][1] is None:
-                CD += 1
+                out["{}CD".format(metricKey)] += 1
+                out["{}#C-".format(metricKey)] += 1
                 continue
             elif rr[0][0] is None:
-                CA += 1
+                out["{}CA".format(metricKey)] += 1
+                out["{}#C+".format(metricKey)] += 1
                 continue
+
+        out["{}#C-".format(metricKey)] += 1
+        out["{}#C+".format(metricKey)] += 1
 
         if len(rr[1]) == 0:
             continue
@@ -92,44 +93,43 @@ def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None, in
         l = rr[1]
 
         if isEvolution(l):
-            E += 1
+            out["{}E".format(metricKey)] += 1
 
         if isRevision(l):
-            R += 1
+            out["{}R".format(metricKey)] += 1
 
         if isChange(l):
-            C += 1
+            out["{}C".format(metricKey)] += 1
 
         for rrr in rr[1]:
             if rrr[0] is not None and rrr[0].isField() and rrr[1] is None:
-                FD += 1
+                out["{}FD".format(metricKey)] += 1
             elif rrr[1] is not None and rrr[1].isField() and rrr[0] is None:
-                FA += 1
+                out["{}FA".format(metricKey)] += 1
             elif rrr[0] is not None and rrr[1] is not None and rrr[0].isField():
                 if len(rrr) > 3 and len(rrr[3]) == 1 and rrr[3][0] == SmaliObject.NOT_SAME_NAME:
-                    FR += 1
+                    out["{}FR".format(metricKey)] += 1
                 else:
-                    FC += 1
+                    out["{}FC".format(metricKey)] += 1
             elif rrr[0] is not None and rrr[0].isMethod() and rrr[1] is None:
-                MD += 1
+                out["{}MD".format(metricKey)] += 1
             elif rrr[1] is not None and rrr[1].isMethod() and rrr[0] is None:
-                MA += 1
+                out["{}MA".format(metricKey)] += 1
             elif rrr[0] is not None and rrr[1] is not None and rrr[0].isMethod():
                 if rrr[2] == ChangesTypes.RENAMED_METHOD:
-                    MR += 1
+                    out["{}MR".format(metricKey)] += 1
                 else:
-                    #print(rrr[2])
-                    MC += 1
+                    out["{}MC".format(metricKey)] += 1
                     if not rrr[0].areSourceCodeSimilars(rrr[1]):
-                        MRev += 1
+                        out["{}MRev".format(metricKey)] += 1
 
                     l = set(rrr[1].getCleanLines()) - set(rrr[0].getCleanLines())
                     if diffOpOnly:
-                        l = list(map(lambda x : x.split(' ')[0], l))
+                        l = list(map(lambda x: x.split(' ')[0], l))
                     for cmd in l:
                         if aggregateOps:
                             cmd = cmd.split('/')[0].split('-')[0]
-                        addedLines.add(cmd)
+                        out["{}addedLines".format(metricKey)].add(cmd)
 
                     l = set(rrr[0].getCleanLines()) - set(rrr[1].getCleanLines())
                     if diffOpOnly:
@@ -137,12 +137,22 @@ def computeMetrics(v1, v2, pkg, excludeListFiles=None, includeListFiles=None, in
                     for cmd in l:
                         if aggregateOps:
                             cmd = cmd.split('/')[0].split('-')[0]
-                        removedLines.add(cmd)
+                        out["{}removedLines".format(metricKey)].add(cmd)
+
+    out["{}CC".format(metricKey)] += len(changedclass)
 
 
+def splitInnerOuterChanged(diff):
+    innerDiff, outerDiff = [], []
 
-    CC = len(changedclass)
-    return len(old.classes),len(new.classes),E,R,C,CA,CD,CC,MA,MD,MC,MRev,MR,FA,FD,FC,FR,addedLines,removedLines
+    for d in diff:
+        if (d[0][0] is not None and "$" in d[0][0].name) or (d[0][1] is not None and "$" in d[0][1].name):
+            innerDiff.append(d)
+        else:
+            outerDiff.append(d)
+
+    return innerDiff, outerDiff
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Compute evolution metrics between two smali versions.')
@@ -166,6 +176,8 @@ if __name__ == '__main__':
                         help='Files containing excluded lits')
     parser.add_argument('--include-lists', '-i', type=str, nargs='*',
                         help='Files containing included lits')
+    parser.add_argument('--no-innerclasses-split', '-I', action='store_true',
+                        help='Do not split metrics for inner/outer classes')
 
     args = parser.parse_args()
 
@@ -173,32 +185,86 @@ if __name__ == '__main__':
     if args.onlyapppackage:
         pkg = args.pkg
         if args.verbose:
-            print("Including classes only in %s"%pkg)
+            print("Including classes only in %s" % pkg)
 
     if args.verbose and args.exclude_lists:
-        print("Ignoring classes includes in these files: %s"%args.exclude_lists)
+        print("Ignoring classes includes in these files: %s" % args.exclude_lists)
 
     if args.aggregateoperators and args.fulllinesofcode:
         print("Aggregation and full lines cannot be enabled at the same time!")
         sys.exit(1)
 
     try:
-        oldclasses,newclasses,E,R,C,CA,CD,CC,MA,MD,MC,MRev,MR,FA,FD,FC,FR,addedLines,removedLines = computeMetrics(args.smaliv1, args.smaliv2, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged, not args.fulllinesofcode, args.aggregateoperators)
+        old = smali.SmaliProject.SmaliProject()
+        old.parseProject(args.smaliv1, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged)
+        #parseProject(old, args.smaliv1, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged)
+
+        if old.isProjectObfuscated():
+            raise ProjectObfuscatedException()
+
+        new = smali.SmaliProject.SmaliProject()
+        new.parseProject(args.smaliv2, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged)
+        #parseProject(new, args.smaliv2, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged)
+
+        if new.isProjectObfuscated():
+            raise ProjectObfuscatedException()
+
+        diff = old.differences(new, [])
+
+        metrics = {}
+
+        if args.no_innerclasses_split:
+            initMetricsDict("", metrics)
+            computeMetrics(diff, metrics, "", not args.fulllinesofcode, args.aggregateoperators)
+        else:
+            innerDiff, outerDiff = splitInnerOuterChanged(diff)
+
+            initMetricsDict("OUT", metrics)
+            initMetricsDict("IN", metrics)
+            computeMetrics(outerDiff, metrics, "OUT", not args.fulllinesofcode, args.aggregateoperators)
+            computeMetrics(innerDiff, metrics, "IN", not args.fulllinesofcode, args.aggregateoperators)
+
     except ProjectObfuscatedException:
         print("This project is obfuscated. Unable to proceed.", file=sys.stderr)
         sys.exit(1)
 
+    bases = [""]
+    if not args.no_innerclasses_split:
+        bases = ["IN", "OUT"]
+
     if args.verbose:
-        print("v0 has %d classes, v1 has %d classes."%(oldclasses, newclasses))
-        print("E = %d. R = %d. C = %d." % (E, R, C))
-        print("Classes - Added: %5d, Changed: %5d, Deleted: %5d." % (CA, CC, CD))
-        print("Methods - Added: %5d, Revised: %5d, Changed: %5d, Renamed: %5d, Deleted: %5d." % (MA, MRev, MC, MR, MD))
-        print(" Fields - Added: %5d, Changed: %5d, Renamed: %5d, Deleted: %5d." % (FA, FC, FR, FD))
-        print("Added lines:")
-        for l in addedLines:
-            print("\t- {}".format(l))
-        print("Removed lines:")
-        for l in removedLines:
-            print("\t- {}".format(l))
+        for b in bases:
+            if len(b) > 0:
+                print("===== {} CLASSES =====".format(b))
+
+            print("v0 has %d classes, v1 has %d classes." % (metrics["{}{}".format(b, "#C-")], metrics["{}{}".format(b, "#C+")]))
+            print("E = %d. R = %d. C = %d." % (metrics["{}{}".format(b, "E")], metrics["{}{}".format(b, "R")], metrics["{}{}".format(b, "C")]))
+            print("Classes - Added: %5d, Changed: %5d, Deleted: %5d." % (metrics["{}{}".format(b, "CA")], metrics["{}{}".format(b, "CC")], metrics["{}{}".format(b, "CD")]))
+            print("Methods - Added: %5d, Revised: %5d, Changed: %5d, Renamed: %5d, Deleted: %5d." % (
+            metrics["{}{}".format(b, "MA")], metrics["{}{}".format(b, "MRev")], metrics["{}{}".format(b, "MC")], metrics["{}{}".format(b, "MR")], metrics["{}{}".format(b, "MD")]))
+            print(" Fields - Added: %5d, Changed: %5d, Renamed: %5d, Deleted: %5d." % (
+            metrics["{}{}".format(b, "FA")], metrics["{}{}".format(b, "FC")], metrics["{}{}".format(b, "FR")], metrics["{}{}".format(b, "FD")]))
+            print("Added lines:")
+            for l in metrics["{}{}".format(b, "addedLines")]:
+                print("\t- {}".format(l))
+            print("Removed lines:")
+            for l in metrics["{}{}".format(b, "removedLines")]:
+                print("\t- {}".format(l))
     else:
-        print("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s"%(oldclasses, newclasses,E,R,C,MA,MD,MRev,MC,MR,FA,FD,FC,FR,CA,CD,CC,'|'.join(addedLines), '|'.join(removedLines)))
+        for b in bases:
+            for k in keys:
+                print("{}{},".format(b, k), end='')
+
+            print("{}addedLines,{}removedLines,".format(b, b), end='')
+
+        print("")
+
+        for b in bases:
+            for k in keys:
+                print("%d," % metrics["{}{}".format(b, k)], end='')
+            print('|'.join(metrics["{}addedLines".format(b)]), end='')
+            print(",", end='')
+            print('|'.join(metrics["{}removedLines".format(b)]), end='')
+            print(",", end='')
+
+        print("")

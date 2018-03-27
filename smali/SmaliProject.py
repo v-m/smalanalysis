@@ -9,7 +9,9 @@ import sys
 import zipfile
 
 import smali.SmaliObject
-import io
+from smali import ComparisonIgnores
+from smali.ChangesTypes import REVISED_METHOD, SAME_NAME
+
 
 class MATCHERS:
     obj = "(\\[*(L[a-zA-Z0-9/_$\\-]+;|Z|B|S|C|I|J|F|D|V))"
@@ -27,10 +29,12 @@ class MATCHERS:
 class SmaliProject(object):
     def __init__(self):
         self.classes = []
+        self.classesdict = {}
         self.ressources_id = set()
 
     def addClass(self, c):
         self.classes.append(c)
+        self.classesdict[c.name] = c
 
     def parseRessource(self, ctnt):
         for line in ctnt.split('\n'):
@@ -100,38 +104,6 @@ class SmaliProject(object):
 
         return rules
 
-    @staticmethod
-    def parseFolderLoop(fbase, f, target, package = None, root = None, skips = None, includes = None, includeUnpackaged = False):
-        if f[-1] == '/':
-            f = f[:-1]
-
-        if root is None:
-            root = f
-
-        for ff in os.listdir(f):
-            fullpath = os.path.join(f, ff)
-            relpath = fullpath[len(fbase):]
-            while len(relpath) > 0 and relpath[0] == '/':
-                relpath = relpath[1:]
-
-            if os.path.isdir(fullpath):
-                SmaliProject.parseFolderLoop(fbase, fullpath, target, package, root, skips, includes, includeUnpackaged)
-            else:
-                op = SmaliProject.keepThisFile(relpath, package, includes, skips, includeUnpackaged)
-
-                if op == 1:
-                    fp = open(fullpath, 'r')
-                    ccontent = fp.read()
-                    fp.close()
-                    cls = SmaliProject.parseClass(ccontent)
-                    cls.parent = target
-                    target.addClass(cls)
-                elif op == 2:
-                    fp = open(fullpath, 'r')
-                    ctnt = fp.read()
-                    fp.close()
-                    target.parseRessource(ctnt)
-
 
     # 1 = class / 2 = ressource / 0 = skip
     @staticmethod
@@ -176,10 +148,14 @@ class SmaliProject(object):
             zp = zipfile.ZipFile(folder, 'r')
             SmaliProject.parseZipLoop(zp, self, package, skips=skips, includes=includes, includeUnpackaged = includeUnpackaged)
         else:
-            SmaliProject.parseFolderLoop(folder, folder, self, package, skips=skips, includes=includes, includeUnpackaged = includeUnpackaged)
+            print("Parsing folder not supported anymore. Please use archive mode.")
+            #SmaliProject.parseFolderLoop(folder, folder, self, package, skips=skips, includes=includes, includeUnpackaged = includeUnpackaged)
 
     @staticmethod
-    def parseZipLoop(zp, target, package=None, skips=None, includes=None, includeUnpackaged = False):
+    def parseZipLoop(zp, target, package=None, skips=None, includes=None, includeUnpackaged=False):
+        classes = {}
+        innerClasses = []
+
         for n in zp.namelist():
             op = SmaliProject.keepThisFile(n, package, includes, skips, includeUnpackaged)
 
@@ -187,10 +163,50 @@ class SmaliProject(object):
                 ccontent = "".join(map(chr, zp.read(n)))
                 cls = SmaliProject.parseClass(ccontent)
                 cls.parent = target
-                target.addClass(cls)
+
+                m2 = cls.name[1:-1].split("$")
+                if len(m2) > 1:
+                    innerClasses.append((cls, m2[0], m2[1:]))
+                else:
+                    classes[cls.name[1:-1]] = cls
+                    target.addClass(cls)
+
             elif op == 2:
                 ccontent = "".join(map(chr, zp.read(n)))
                 target.parseRessource(ccontent)
+
+        # Deal with inner classes now
+        looplevel = 0
+        processedAtLeastOne = True
+
+        while (processedAtLeastOne):
+            processedAtLeastOne = False
+            looplevel += 1
+
+            for e in innerClasses:
+                # if e[1] not in classes:
+                #     missingClass = SmaliClass(old)
+                #     missingClass.name = "L{};".format(e[1])
+                #     classes[e[1]] = missingClass
+                #     print("PUSHING {}".format(missingClass.name))
+                #     target.addClass(missingClass)
+
+                targetclass = classes[e[1]]
+                innerClassPath = list(e[2][:-1])
+
+                if len(e[2]) == looplevel:
+                    while (len(innerClassPath) > 0):
+                        newLevel = innerClassPath.pop()
+
+                        # if newLevel not in targetclass.innerclasses:
+                        #     missingClass = SmaliClass(old)
+                        #     newClassName = "L{}{};".format(targetclass.name[1:-1], newLevel)
+                        #     missingClass.name = newClassName
+                        #     targetclass.innerclasses[newLevel] = missingClass
+
+                    targetclass.innerclasses[e[2][-1]] = e[0]
+                    e[0].parent = targetclass
+                    processedAtLeastOne = True
 
     def searchClass(self, clazzName):
         searchfor = clazzName
@@ -252,20 +268,73 @@ class SmaliProject(object):
 
         return similars, differents
 
-    def differences(self, other, ignores):
+    def differences(self, other, ignores, processInnerClasses=True):
         ret = []
         dd = self.matchClasses(other)
+        classesMatching = {}
 
-        for sim in dd[0]:
+        def appendMatchedCase(sim):
+            classesMatching[sim[0].name] = sim[1].name
             rret = list()
             diff = sim[0].differences(sim[1], ignores)
             if len(diff) > 0:
                 rret.extend(diff)
-
             ret.append([sim, rret])
+
+
+        for sim in dd[0]:
+            appendMatchedCase(sim)
 
         for diff in dd[1]:
             ret.append([diff, None])
+
+        """
+        Additional code for handling inner classes
+        """
+        if processInnerClasses:
+            processClasses = []
+            for old, new in dd[0]:
+                if old.hasInnerClasses() or new.hasInnerClasses():
+                    processClasses.append((old, new))
+                elif len(old.innerclasses) + len(new.innerclasses) > 0:
+                    # Should not happen
+                    assert(False)
+
+            while len(processClasses) > 0:
+                popped = processClasses.pop()
+
+                old, new = popped
+                result = SmaliProject.diffAnonymousInnerClasses(old, new, classesMatching)
+
+                for matched in result[0]:
+                    appendMatchedCase(matched)
+                    if matched[0].hasInnerClasses() or matched[1].hasInnerClasses():
+                        processClasses.append((matched[0], matched[1]))
+
+                result = SmaliProject.diffNonAnonymousInnerClasses(old, new, classesMatching)
+                for matched in result[0]:
+                    appendMatchedCase(matched)
+                    if matched[0].hasInnerClasses() or matched[1].hasInnerClasses():
+                        processClasses.append((matched[0], matched[1]))
+
+                for droppedInnerClasses in result[1]:
+                    ret.append([[droppedInnerClasses, None], None])
+
+                for insertedInnerClasses in result[2]:
+                    ret.append([[None, insertedInnerClasses], None])
+
+            #Not matched inner classes
+            for diff in dd[1]:
+                def analyseIt(clazz, innerclasses):
+                    for i in clazz.innerclasses:
+                        innerclasses.append(clazz.innerclasses[i])
+                        analyseIt(clazz.innerclasses[i], innerclasses)
+
+                innerclasses = []
+                analyseIt(diff[1 if diff[0] is None else 0], innerclasses)
+
+                for r in map(lambda x: [[None if diff[0] is None else x, x if diff[0] is None else None], None], innerclasses):
+                    ret.append(r)
 
         return ret
 
@@ -274,7 +343,6 @@ class SmaliProject(object):
         clazz = smali.SmaliObject.SmaliClass(None)
 
         # Class declaration
-
         readingmethod = None
         readingannotation = None
         currentobj = clazz
@@ -376,8 +444,89 @@ class SmaliProject(object):
         cls.parent = self
         self.addClass(cls)
 
-    def __eq__(self, other):
-        return compareListsBoolean(self.classes, other.classes)
+    # def __eq__(self, other):
+    #
+    #     # FIXIT Do not use __eq__ directly !
+    #     assert (False)
 
-    def signatureEq(self, other):
-        return compareListsBoolean(self.classes, other.classes, True)
+    def equals(self, other, mappings=None):
+        return smali.compareListsBoolean(self.classes, other.classes)
+
+    # def signatureEq(self, other):
+    #     return compareListsBoolean(self.classes, other.classes, True)
+
+    @staticmethod
+    def diffAnonymousInnerClasses(old, new, mappings):
+        def onlyUnmatched(innerclasses, matchState):
+            return filter(lambda x: x not in matchState, innerclasses)
+
+        def thisContextDiff(old, new, mappings):
+            ret = []
+            for r in old.differences(new, [ComparisonIgnores.CLASS_NAME, ComparisonIgnores.FIELD_NAME], mappings):
+                if r[2] == SAME_NAME or r[2] == REVISED_METHOD:
+                    continue
+
+                if len(r) > 3 and type(r[3]) == list and len(r[3]) == 1 and r[3][0] == "NOT_SAME_NAME":
+                    continue
+
+                ret.append(r)
+
+            return ret
+
+        # Let's compare inner classes to try to match them :)
+        matches = []
+        matchedOld = []
+        matchedNew = []
+
+        for oldinnerclassname in old.getAnonymousInnerClasses():
+            for newinnerclassname in onlyUnmatched(new.getAnonymousInnerClasses(), matchedNew):
+                diffs = thisContextDiff(old.innerclasses[oldinnerclassname], new.innerclasses[newinnerclassname],
+                                        mappings)
+
+                if len(diffs) == 0:
+                    # print("\tMatched old ${} and new ${}".format(oldinnerclassname, newinnerclassname))
+                    matches.append((old.innerclasses[oldinnerclassname], new.innerclasses[newinnerclassname]))
+                    matchedOld.append(oldinnerclassname)
+                    matchedNew.append(newinnerclassname)
+                    # mappings[old.innerclasses[oldinnerclassname].name] = new.innerclasses[newinnerclassname].name
+                    # found = True
+                    break
+                # elif len(diffs) == 1:
+                # print("\tUN-Matched old ${} and new ${} = {}".format(oldinnerclassname, newinnerclassname, diffs))
+                # thisContextDiff(old.innerclasses[oldinnerclassname], new.innerclasses[newinnerclassname], mappings)
+
+        # OK, let's see what remains now...
+        # for oldinnerclassname in onlyUnmatched(old.getAnonymousInnerClasses(), matchedOld):
+        #     print("\tUNMATCHED OLD = {}".format(oldinnerclassname))
+        #
+        # for newinnerclassname in onlyUnmatched(new.getAnonymousInnerClasses(), matchedNew):
+        #     print("\tUNMATCHED NEW = {}".format(newinnerclassname))
+
+        return matches, \
+               map(lambda x: old.getAnonymousInnerClasses()[x],
+                   onlyUnmatched(old.getAnonymousInnerClasses(), matchedOld)), \
+               map(lambda x: new.getAnonymousInnerClasses()[x],
+                   onlyUnmatched(new.getAnonymousInnerClasses(), matchedNew))
+
+    @staticmethod
+    def diffNonAnonymousInnerClasses(old, new, mappings):
+        oldc = old.getNonAnonymousInnerClasses()
+        oldk = set(list(oldc))
+        newc = new.getNonAnonymousInnerClasses()
+        newk = set(list(newc))
+
+        matched, unmatchedold, unmatchednew = [], [], []
+
+        for k in oldk.intersection(newk):
+            matched.append((old.innerclasses[k], new.innerclasses[k]))
+            # print(old.innerclasses[k].differences(old.innerclasses[k], mappings))
+
+        for k in oldk - newk:
+            unmatchedold.append(old.innerclasses[k])
+            # print("REMOVED: {}".format(k))
+
+        for k in newk - oldk:
+            unmatchednew.append(new.innerclasses[k])
+            # print("ADDED: {}".format(k))
+
+        return matched, unmatchedold, unmatchednew

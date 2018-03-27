@@ -1,3 +1,5 @@
 .DS_Store
+trash
 *.pyc
-tests/src/v*/*.smali
+*.smali
+smali.zip

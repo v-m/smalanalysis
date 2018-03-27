@@ -4,11 +4,14 @@
 
 cpath=$(pwd)
 cd $1
-pwd
 javac -source 1.7 -target 1.7 -Xlint:none $(find . -iname '*.java');
-dx  --dex --output=classes.dex $(find . -iname '*.class');
+dx --dex --output=classes.dex $(find . -iname '*.class');
 rm $(find . -iname '*.class')
-java -jar ~/Software/baksmali-2.2.1.jar disassemble classes.dex;
+java -jar ../../../bin/baksmali-2.2.1.jar disassemble classes.dex;
 rm *.dex;
-cp -r out/* .;
+cd out;
+zip -r smali.zip *;
+cd ..;
+mv out/smali.zip .;
+#cp -r out/* .;
 rm -r out;
