@@ -185,7 +185,7 @@ if __name__ == '__main__':
     try:
         oldclasses,newclasses,E,R,C,CA,CD,CC,MA,MD,MC,MRev,MR,FA,FD,FC,FR,addedLines,removedLines = computeMetrics(args.smaliv1, args.smaliv2, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged, not args.fulllinesofcode, args.aggregateoperators)
     except ProjectObfuscatedException:
-        print("This project is obfuscated. Unable to proceed.")
+        print("This project is obfuscated. Unable to proceed.", file=sys.stderr)
         sys.exit(1)
 
     if args.verbose:
