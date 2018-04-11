@@ -33,29 +33,42 @@ jumps_pattern = re.compile(':[a-zA-Z0-9_\\-]+')
 local_registers_pattern = re.compile('v[0-9]+')
 param_registers_pattern = re.compile('p[0-9]+')
 
+inner_anonymous_class_reference_matcher = re.compile("\$[0-9$]+;")
+
 def compareStringSets(m1, m2):
     return len(m1 ^ m2) == 0
 
-def compareListsSameposition(l1, l2):
+def compareListsSameposition(l1, l2, mappings=None):
     if len(l1) != len(l2):
         return False
 
     for i in range(len(l1)):
-        if not l1[i].__eq__(l2[i]):
+        if(type(l1[i]) != type(l2[i])):
             return False
+
+        if(type(l1[i]) == str):
+            if(mappings is not None and l1[i] in mappings):
+                if mappings[l1[i]] != l2[i]:
+                    return False
+            else:
+                if l1[i] != l2[i]:
+                    return False
+        else:
+            if not l1[i].equals(l2[i], mappings):
+                return False
 
     return True
 
-def bidirectCompareLists(l1, l2, ignores = None):
+def bidirectCompareLists(l1, l2, ignores = None, mappings = None):
     if ignores is None:
         ignores = []
 
     ret = []
 
-    for m in compareLists(l1, l2, ignores):
+    for m in compareLists(l1, l2, ignores, mappings):
         ret.append([SELF, m])
 
-    for m in compareLists(l2, l1, ignores):
+    for m in compareLists(l2, l1, ignores, mappings):
         ret.append([OTHER, m])
 
     return ret
@@ -82,7 +95,7 @@ def compareListsSignatureEq(l1, l2):
 
     return missings
 
-def compareLists(l1, l2, ignores = None):
+def compareLists(l1, l2, ignores = None, mappings = None):
     if ignores is None:
         ignores = []
 
@@ -96,10 +109,13 @@ def compareLists(l1, l2, ignores = None):
 
             for it2 in l2:
                 if type(it1) == str or type(it2) == str:
-                    if it1 == it2:
+                    if mappings is not None and compareWithMapping(it1, it2, mappings):
                         found = True
                         break
-                elif len(it1.differences(it2, ignores)) == 0:
+                    elif it1 == it2:
+                        found = True
+                        break
+                elif len(it1.differences(it2, ignores, mappings)) == 0:
                     found = True
                     break
 
@@ -110,24 +126,8 @@ def compareLists(l1, l2, ignores = None):
 
     return missings
 
-def compareListsBoolean(l1, l2):
-    if l1 is None and l2 is None:
-        return True
-    elif l1 is not None and l2 is not None:
-        for it1 in l1:
-            found = False
-
-            for it2 in l2:
-                if it1.__eq__(it2):
-                    found = True
-                    break
-
-            if not found:
-                return False
-    else:
-        return False
-
-    return True
+def compareListsBoolean(l1, l2, mappings=None):
+    return len(compareLists(l1, l2, mappings)) == 0
 
 
 
@@ -174,13 +174,19 @@ class SmaliAnnotableModifiable(object):
     def isMethod(self):
         return False
 
-    def __eq__(self, other):
+    #VINCE No need to compare mappings (yet?) at this stage
+    # def __eq__(self, other):
+    #
+    #     #FIXIT Do not use __eq__ directly !
+    #     assert(False)
+
+    def equals(self, other, mappings=None):
         if not compareStringSets(self.modifiers, other.modifiers) or not len(self.annotations) == len(other.annotations): #TODO annotations ?
             return False
 
         return True
 
-    def differences(self, other, ignores):
+    def differences(self, other, ignores, mappings = None):
         ret = []
 
 
@@ -216,21 +222,25 @@ class SmaliWithLines(SmaliAnnotableModifiable):
     def getLines(self):
         return list(self.lines)
 
-    def __eq__(self, other):
-        if self.name != other.name or not self.areSourceCodeSimilars(other):
+    # def __eq__(self, other):
+    #     #FIXIT Do not use __eq__ directly !
+    #     assert(False)
+
+    def equals(self, other, mappings=None):
+        if not compareWithMapping(self.name, other.name, mappings) or not self.areSourceCodeSimilars(other,mappings):
             return False
 
-        return SmaliAnnotableModifiable.__eq__(self, other)
+        return SmaliAnnotableModifiable.equals(self, other, mappings)
 
-    def differences(self, other, ignores):
+    def differences(self, other, ignores, mappings=None):
         ret = []
 
         if ComparisonIgnores.WITHLINES_NAME not in ignores:
-            if self.name != other.name:
+            if not compareWithMapping(self.name, other.name, mappings):
                 ret.append(NOT_SAME_NAME)
 
         if ComparisonIgnores.WITHLINES_SOURCECODE not in ignores:
-            if not self.areSourceCodeSimilars(other):
+            if not self.areSourceCodeSimilars(other,mappings):
                 ret.append(NOT_SAME_SOURCECODE_LINES)
 
         ret.extend(SmaliAnnotableModifiable.differences(self, other, ignores))
@@ -280,41 +290,44 @@ class SmaliWithLines(SmaliAnnotableModifiable):
     def moreThanNInstruction(self, n):
         return len(self.getCleanLines()) > n
 
-    def areSourceCodeSimilars(self, other, considerRReferences = False):
+    def areSourceCodeSimilars(self, other, considerRReferences=False, dropAnonymousClassContent=True, mappings=None):
+        """
+        Compare the smali lines
+        :param other:
+        :param considerRReferences:
+        :param dropAnonymousClassContent: Do not compare the $X references in source lines.
+                                            This option may induce some inacurracy but better match changes between
+                                            two versions.
+        :return:
+        """
         slines = self.getCleanIdentityLines()
         olines = other.getCleanIdentityLines()
-
-        '''
-        slinematches = []
-        olinematches = []
-
-        for lnumber in range(len(slines)):
-            if smali.SmaliProject.MATCHERS.hex_ref.match(slines[lnumber]):
-                slinematches.append(lnumber)
-
-        for lnumber in range(len(olines)):
-            if smali.SmaliProject.MATCHERS.hex_ref.match(olines[lnumber]):
-                olinematches.append(lnumber)
-
-        if len(slinematches) > 0 or len(olinematches) > 0:
-            if self.getParentProjectIfAny() is not None or other.getParentProjectIfAny() is not None:
-                for addr in self.getParentProjectIfAny().ressources_id:
-                    if self.getParentProjectIfAny():
-                        for lnumber in slinematches:
-                            if addr in slines[lnumber]:
-                                slines[lnumber] = slines[lnumber].replace(addr, '///RESS_REF///')
-
-                    if other.getParentProjectIfAny():
-                        for lnumber in olinematches:
-                            if addr in olines[lnumber]:
-                                olines[lnumber] = olines[lnumber].replace(addr, '///RESS_REF///')
-        '''
 
         if not considerRReferences:
             slines = SmaliMethod.clearRReferences(slines)
             olines = SmaliMethod.clearRReferences(olines)
 
+        if dropAnonymousClassContent:
+            slines = SmaliMethod.clearInnerClassesReferences(slines)
+            olines = SmaliMethod.clearInnerClassesReferences(olines)
+
+        if mappings is not None:
+            slines = SmaliMethod.transposeWithNewReferences(slines, mappings)
+
+
         return compareListsSameposition(slines, olines)
+
+    def transposeWithNewReferences(self, old, mappings):
+        ret = []
+
+        for line in old:
+            thisline = line
+            for m in mappings:
+                thisline = thisline.replace(m.replace(";", ""), mappings[m].replace(";", ""))
+
+            ret.append(thisline)
+
+        return ret
 
     @staticmethod
     def clearRReferences(lines):
@@ -331,6 +344,15 @@ class SmaliWithLines(SmaliAnnotableModifiable):
         return ret
 
     @staticmethod
+    def clearInnerClassesReferences(lines):
+        ret = list()
+
+        for line in lines:
+            ret.append(inner_anonymous_class_reference_matcher.sub("$?", line))
+
+        return ret
+
+    @staticmethod
     def keepThisLine(line):
         lline = line.strip()
         return len(lline) > 0 and lline[0] != '.' and lline[0] != ':' and lline[0] != '#'
@@ -343,21 +365,26 @@ class SmaliField(SmaliAnnotableModifiable):
         self.init = init
         self.addModifiersFromList(modifiers)
 
-    def __eq__(self, other):
-        if self.name == other.name and self.type == other.type and self.init == other.init:
-            return SmaliAnnotableModifiable.__eq__(self, other)
+    # def __eq__(self, other):
+    #
+    #     # FIXIT Do not use __eq__ directly !
+    #     assert (False)
+
+    def equals(self, other, mappings = None):
+        if self.name == other.name and compareWithMapping(self.type, other.type, mappings) and self.init == other.init:
+            return SmaliAnnotableModifiable.equals(self, other)
 
         return False
 
-    def differences(self, other, ignores):
+    def differences(self, other, ignores, mappings=None):
         ret = []
 
         if ComparisonIgnores.FIELD_NAME not in ignores:
-            if self.name != other.name:
+            if not compareWithMapping(self.name, other.name, mappings):
                 ret.append(NOT_SAME_NAME)
 
         if ComparisonIgnores.FIELD_TYPE not in ignores:
-            if self.type != other.type:
+            if not compareWithMapping(self.type, other.type, mappings):
                 ret.append(NOT_SAME_TYPE)
 
         if ComparisonIgnores.FIELD_INIT not in ignores:
@@ -378,11 +405,19 @@ class SmaliMethod(SmaliWithLines):
         self.params = params
         self.ret = ret
 
-    def __eq__(self, other):
-        if self.ret != other.ret or not compareListsSameposition(self.params, other.params):
+    # def __eq__(self, other):
+    #     #FIXIT Do not use __eq__ directly !
+    #     assert(False)
+    #     return self.equals(other, None)
+
+    def equals(self, other, mappings = None):
+        if not isinstance(other, SmaliMethod) or not isinstance(self, SmaliMethod):
             return False
 
-        return SmaliWithLines.__eq__(self, other)
+        if self.ret != other.ret or not compareListsSameposition(self.params, other.params, mappings):
+            return False
+
+        return SmaliWithLines.equals(self, other)
 
     def getLightParams(self):
         ret = []
@@ -392,11 +427,11 @@ class SmaliMethod(SmaliWithLines):
 
         return ret
 
-    def differences(self, other, ignores):
+    def differences(self, other, ignores, mappings=None):
         ret = []
 
         if ComparisonIgnores.METHOD_RETURN not in ignores:
-            if self.ret != other.ret:
+            if not compareWithMapping(self.ret, other.ret, mappings):
                 ret.append(NOT_SAME_RETURN_TYPE)
 
         if ComparisonIgnores.METHOD_PARAMS not in ignores:
@@ -424,8 +459,27 @@ class SmaliAnnotation(SmaliWithLines):
 
 
 
+def compareWithMapping(old, new, mappings):
+    oldres = old
 
+    if mappings is not None and "$" in old:
+        oldres = "L{};".format(re.match("L(.*?)(\$(.*))?;", old).group(1))
 
+    if mappings is not None and oldres in mappings:
+        if(mappings[oldres] == new):
+            return True
+
+        oold = inner_anonymous_class_reference_matcher.sub("$?;", old)
+        onew = inner_anonymous_class_reference_matcher.sub("$?;", new)
+
+        for m in mappings:
+            if m.replace(";", "") in oold:
+                oold = oold.replace(m.replace(";", ""), mappings[m].replace(";", ""))
+                break
+
+        return oold == onew
+    else:
+        return old == new
 
 
 
@@ -445,12 +499,21 @@ class SmaliClass(SmaliAnnotableModifiable):
         self.zuper = None
         self.source = None
         self.implements = set()
-
+        self.innerclasses = {}
         self.methods = []
         self.fields = []
 
     def getName(self):
         return self.name
+
+    def hasInnerClasses(self):
+        return len(self.innerclasses) > 0
+
+    def getAnonymousInnerClasses(self):
+        return filter(lambda x: re.match(("^[0-9]+$"), x), self.innerclasses)
+
+    def getNonAnonymousInnerClasses(self):
+        return filter(lambda x: not re.match(("^[0-9]+$"), x), self.innerclasses)
 
     def determineParentClass(self):
         if self.parent is not None:
@@ -518,42 +581,47 @@ class SmaliClass(SmaliAnnotableModifiable):
     def addImplementedInterface(self, ifce):
         self.implements.add(ifce)
 
-    def __eq__(self, other):
-        if self.name != other.name or self.zuper != other.zuper or \
-                        not compareListsBoolean(self.implements, other.implements) or \
-                        not compareListsBoolean(self.methods, other.methods) or \
-                        not compareListsBoolean(self.fields, other.fields) or \
-                        not compareListsBoolean(other.implements, self.implements) or \
-                        not compareListsBoolean(other.methods, self.methods) or \
-                        not compareListsBoolean(other.fields, self.fields):
+    #def __eq__(self, other):
+    # FIXIT Do not use __eq__ directly !
+    #    assert (False)
+
+    def equals(self, other, mappings = None):
+        if not compareWithMapping(self.name, other.name, mappings) or \
+                not compareWithMapping(self.zuper, other.zuper, mappings) or \
+                not compareListsBoolean(self.implements, other.implements, mappings) or \
+                not compareListsBoolean(self.methods, other.methods, mappings) or \
+                not compareListsBoolean(self.fields, other.fields, mappings) or \
+                not compareListsBoolean(other.implements, self.implements, mappings) or \
+                not compareListsBoolean(other.methods, self.methods, mappings) or \
+                not compareListsBoolean(other.fields, self.fields, mappings):
             return False
 
-        return SmaliAnnotableModifiable.__eq__(self, other)
+        return SmaliAnnotableModifiable.equals(self, other)
 
-    def differences(self, other, ignores):
+    def differences(self, other, ignores, mappings=None):
         fret = []
 
         if ComparisonIgnores.CLASS_NAME not in ignores:
-            if self.name != other.name:
+            if not compareWithMapping(self.name, other.name, mappings):
                 fret.append([self, other, NOT_SAME_NAME])
 
         if ComparisonIgnores.CLASS_SUPER not in ignores:
-            if self.zuper != other.zuper:
+            if not compareWithMapping(self.zuper, other.zuper, mappings):
                 fret.append([self, other, NOT_SAME_PARENT])
 
         if ComparisonIgnores.CLASS_IMPLEMENTS not in ignores:
-            ret = bidirectCompareLists(self.implements, other.implements)
+            ret = bidirectCompareLists(self.implements, other.implements, mappings)
             if len(ret) > 0:
                 fret.append([self, other, NOT_SAME_INTERFACES, ret])
 
         if ComparisonIgnores.CLASS_METHODS not in ignores:
-            ret = self.methodsComparison(other, ignores)
+            ret = self.methodsComparison(other, ignores, mappings)
 
             for diff in ret[1]:
                 fret.append(diff)
 
         if ComparisonIgnores.CLASS_FIELDS not in ignores:
-            ret = self.fieldsComparison(other, ignores, fret)
+            ret = self.fieldsComparison(other, ignores, fret, mappings)
 
             for diff in ret[1]:
                 fret.append(diff)
@@ -567,7 +635,7 @@ class SmaliClass(SmaliAnnotableModifiable):
     def setSource(self, param):
         self.source = param
 
-    def methodsComparison(self, other, ignores):
+    def methodsComparison(self, other, ignores, mappings=None):
         mself = list(self.methods)
         mother = list(other.methods)
         mttemp = list()
@@ -581,7 +649,7 @@ class SmaliClass(SmaliAnnotableModifiable):
             found = False
 
             for m in mother:
-                if meth == m:
+                if meth.equals(m, mappings):
                     found = True
                     sames.append([meth, m])
                     mother.remove(m)
@@ -597,10 +665,10 @@ class SmaliClass(SmaliAnnotableModifiable):
             meth = mself.pop()
 
             op = None
-            found  = False
+            found = False
 
             for m in mother:
-                diff = meth.differences(m, ignores)
+                diff = meth.differences(m, ignores, mappings)
 
                 if len(diff) == 1:
                     if diff[0] == NOT_SAME_SOURCECODE_LINES:
@@ -608,6 +676,8 @@ class SmaliClass(SmaliAnnotableModifiable):
                     elif diff[0] == NOT_SAME_NAME and meth.moreThanNInstruction(1):
                         op = [m, ChangesTypes.RENAMED_METHOD]
                 if op is None and meth.name == m.name:
+                    # More than one change but they have the same source code,
+                    # so we can suppose they are the same changed methods...
                     op = [m, ChangesTypes.SAME_NAME]
 
                 if op is not None:
@@ -628,7 +698,7 @@ class SmaliClass(SmaliAnnotableModifiable):
             op = None
 
             for m in mother:
-                if meth.areSourceCodeSimilars(m) and meth.moreThanNInstruction(1):
+                if meth.areSourceCodeSimilars(m,mappings) and meth.moreThanNInstruction(1):
                     op = [m, ChangesTypes.RENAMED_METHOD]
 
                 if op is not None:
@@ -645,7 +715,7 @@ class SmaliClass(SmaliAnnotableModifiable):
 
         return sames, diffs
 
-    def fieldsComparison(self, other, ignores, ret):
+    def fieldsComparison(self, other, ignores, ret, mappings=None):
         fself = list(self.fields)
         fother = list(other.fields)
         mttemp = list()
@@ -659,7 +729,7 @@ class SmaliClass(SmaliAnnotableModifiable):
             found = False
 
             for f in fother:
-                if field == f:
+                if field.equals(f, mappings):
                     found = True
                     sames.append([field, f])
                     fother.remove(f)

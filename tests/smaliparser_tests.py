@@ -20,7 +20,7 @@ class SmaliParseTesting(unittest.TestCase):
             subprocess.run(['bash', 'src/extractsmali.sh', 'src/%s'%v1], stdout=subprocess.PIPE, cwd=SmaliParseTesting.getTestFolder())
 
             sm = SmaliProject()
-            sm.parseFolder('%s/src/%s'%(SmaliParseTesting.getTestFolder(), v1), None)
+            sm.parseProject('%s/src/%s/smali.zip' % (SmaliParseTesting.getTestFolder(), v1), None)
             return sm
 
     @staticmethod
@@ -42,7 +42,6 @@ class SmaliParseTesting(unittest.TestCase):
 
     def test_simple_case(self):
         smali = SmaliParseTesting.prepare('v43')
-
 
         self.assertEqual(len(smali.classes), 1)
         self.assertEqual(smali.classes[0].getBaseName(), 'my/pkg/Foo')

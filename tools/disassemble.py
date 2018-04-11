@@ -1,25 +1,41 @@
+import argparse
 import shutil
 import subprocess
-import sys
 import os
 import zipfile
 import re
 
-def runSmali(apkpath, smalipath, overwrite=False):
+COMPRESSION_METHOD = zipfile.ZIP_DEFLATED
+
+def zipdir(path, smalizip):
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            pth = os.path.join(root, file)
+            pthinzip = pth[len(path):]
+
+            if pthinzip[0] == os.sep:
+                pthinzip = pthinzip[1:]
+
+            smalizip.write(pth, pthinzip)
+
+def runSmali(apkpath, smalipath, overwrite=False, buildZip=False, mergeFolders=True):
     if os.path.exists(smalipath):
         if overwrite:
-            os.rmdir(smalipath)
+            if os.path.isfile(smalipath):
+                os.remove(smalipath)
+            else:
+                shutil.rmtree(smalipath)
         else:
             return
 
     dexesfolder = []
     z = zipfile.ZipFile(apkpath)
-    for file in [file for file in zipfile.ZipFile(apkpath).namelist() if re.match('^classes[0-9]*.dex$', file)]:
+    for file in [file for file in z.namelist() if re.match('^classes[0-9]*.dex$', file)]:
         fullsmalipath = '_'.join([smalipath, file])
         dexesfolder.append(fullsmalipath)
 
         if os.path.exists(fullsmalipath):
-            os.rmdir(fullsmalipath)
+            shutil.rmtree(fullsmalipath)
 
         base = os.path.realpath(__file__)
         for i in range(2):
@@ -30,22 +46,44 @@ def runSmali(apkpath, smalipath, overwrite=False):
 
     z.close()
 
-    os.mkdir(smalipath)
+    if buildZip:
+        with zipfile.ZipFile(smalipath, 'w', compression=COMPRESSION_METHOD) as smalizip:
+            for dir in dexesfolder:
+                zipdir(dir, smalizip)
+                shutil.rmtree(dir)
+    else:
+        if mergeFolders:
+            os.mkdir(smalipath)
 
-    for dir in dexesfolder:
-        for sdir in os.listdir(dir):
-            shutil.move('/'.join([dir, sdir]), '/'.join([smalipath, sdir]))
+            for dir in dexesfolder:
+                for sdir in os.listdir(dir):
+                    shutil.move('/'.join([dir, sdir]), '/'.join([smalipath, sdir]))
 
-        os.rmdir(dir)
+                shutil.rmtree(dir)
 
 if __name__ == '__main__':
-    if len(sys.argv) > 2:
-        apkpath = sys.argv[1]
-        smalifolder = sys.argv[2]
-        overwrite = False
+    parser = argparse.ArgumentParser(description='Extract smali content.')
+    parser.add_argument('apkpath', type=str,
+                        help='The full path to the apk')
+    parser.add_argument('output', type=str,
+                         help='Where to output smali files', nargs='?', default = None )
+    parser.add_argument('--overwrite', '-o', action='store_true',
+                        help='Delete all previous exportation')
+    parser.add_argument('--folder', '-f', action='store_true',
+                        help='Disassemble in a folder instead than a ZIP file')
+    parser.add_argument('--dont-merge', '-D', action='store_true',
+                        help='If --folder, don\'t merge back all dexes in one folder')
 
+    args = parser.parse_args()
 
-        if len(sys.argv) > 3:
-            overwrite = sys.argv[3] == '1'
+    apkpath = args.apkpath
+    output = args.output
+    dofolder = args.folder
+    dontmerge = args.dont_merge
 
-        runSmali(apkpath, smalifolder, overwrite)
+    if output is None:
+        output = '%s.smali'%apkpath
+
+    overwrite = args.overwrite
+
+    runSmali(apkpath, output, overwrite, not dofolder, not dontmerge)
