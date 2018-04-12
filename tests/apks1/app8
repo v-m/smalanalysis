@@ -1,0 +1,66 @@
+package com.example1.xinyin.myapplication;
+
+import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.widget.Button;
+import android.view.View;
+import android.view.Menu;
+import android.view.MenuItem;
+
+public class MainActivity extends AppCompatActivity {
+
+    private Button btnA;
+    private Button btnB;
+    private Button btnC;
+
+    public MainActivity(){
+
+        Foo.bar();
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        btnA = (Button) findViewById(R.id.button1);
+        btnB = (Button) findViewById(R.id.button2);
+        btnC = (Button) findViewById(R.id.button3);
+
+        btnA.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+
+        btnB.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Foo.bar();
+                System.out.println(Foo.biz);
+                Foo.biz = 16;
+            }
+        });
+
+        }
+    private String put(){
+        btnC.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+        return "j";
+    }
+
+    static class Foo {
+        static int biz = 14;
+        static public void bar(){
+
+        }
+
+    }
