@@ -8,9 +8,8 @@ import subprocess
 import os
 import shutil
 import metrics
-#from metrics import computeMetrics
 import smali.SmaliProject
-from tests.diff_tests import BasicMetricTesting
+from tests.TestHelper import TestHelper
 
 
 class TestUM(unittest.TestCase):
@@ -57,7 +56,7 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v2)
 
         malg = TestUM.computeMetrics(v1, v2, pkg)
-        BasicMetricTesting.metricsScoreComparing(self, malg, {})
+        TestHelper.metricsScoreComparing(self, malg, {})
     
     def test_v2v3_renameingonemethod(self):
         pkg = 'com.example.xinyin.myapplication'
@@ -69,7 +68,7 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v2)
 
         malg = TestUM.computeMetrics(v1, v2, pkg)
-        BasicMetricTesting.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "MR": 1})
+        TestHelper.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "MR": 1})
 
     def test_v3v4_renameingonefield(self):
         pkg = 'com.example.xinyin.myapplication'
@@ -80,7 +79,7 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v2)
 
         malg = TestUM.computeMetrics(v1, v2, pkg)
-        BasicMetricTesting.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "FR": 1})
+        TestHelper.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "FR": 1})
 
 
     def test_v4v5_renameingonefield_String(self):
@@ -94,7 +93,7 @@ class TestUM(unittest.TestCase):
 
 
         malg = TestUM.computeMetrics(v1, v2, pkg)
-        BasicMetricTesting.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "FR": 1})
+        TestHelper.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "FR": 1})
 
     def test_v5v6_changemethod(self):
         pkg = 'com.example.xinyin.myapplication'
@@ -106,7 +105,7 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v2)
 
         malg = TestUM.computeMetrics(v1, v2, pkg)
-        BasicMetricTesting.metricsScoreComparing(self, malg, {"R": 1, "CC": 1, "MC": 1})
+        TestHelper.metricsScoreComparing(self, malg, {"R": 1, "CC": 1, "MC": 1})
 
     def test_v6v7_renameingonefield(self):
         pkg = 'com.example.xinyin.myapplication'
@@ -118,7 +117,7 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v2)
 
         malg = TestUM.computeMetrics(v1, v2, pkg)
-        BasicMetricTesting.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "FR": 1})
+        TestHelper.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "FR": 1})
 
  
 
@@ -132,7 +131,7 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v2)
 
         malg = TestUM.computeMetrics(v1, v2, pkg)
-        BasicMetricTesting.metricsScoreComparing(self, malg, {"R": 1, "CC": 1, "MC": 1})
+        TestHelper.metricsScoreComparing(self, malg, {"R": 1, "CC": 1, "MC": 1})
 
 
 
@@ -146,7 +145,7 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v2)
 
         malg = TestUM.computeMetrics(v1, v2, pkg)
-        BasicMetricTesting.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "MC": 2})
+        TestHelper.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "MC": 2})
 
 
 if __name__ == '__main__':

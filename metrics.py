@@ -254,7 +254,7 @@ if __name__ == '__main__':
         # for b in bases:
         #     for k in keys:
         #         print("{}{},".format(b, k), end='')
-        # 
+        #
         #     print("{}addedLines,{}removedLines,".format(b, b), end='')
         #
         # print("")
