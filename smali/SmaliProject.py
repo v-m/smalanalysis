@@ -311,6 +311,12 @@ class SmaliProject(object):
                     if matched[0].hasInnerClasses() or matched[1].hasInnerClasses():
                         processClasses.append((matched[0], matched[1]))
 
+                for droppedInnerClasses in result[1]:
+                    ret.append([[droppedInnerClasses, None], None])
+
+                for insertedInnerClasses in result[2]:
+                    ret.append([[None, insertedInnerClasses], None])
+
                 result = SmaliProject.diffNonAnonymousInnerClasses(old, new, classesMatching)
                 for matched in result[0]:
                     appendMatchedCase(matched)
@@ -503,9 +509,9 @@ class SmaliProject(object):
         #     print("\tUNMATCHED NEW = {}".format(newinnerclassname))
 
         return matches, \
-               map(lambda x: old.getAnonymousInnerClasses()[x],
+               map(lambda x: old.innerclasses[x],
                    onlyUnmatched(old.getAnonymousInnerClasses(), matchedOld)), \
-               map(lambda x: new.getAnonymousInnerClasses()[x],
+               map(lambda x: new.innerclasses[x],
                    onlyUnmatched(new.getAnonymousInnerClasses(), matchedNew))
 
     @staticmethod
