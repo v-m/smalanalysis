@@ -5,7 +5,7 @@ import argparse
 import smali.SmaliObject
 import smali.ChangesTypes
 import smali.SmaliProject
-from smali import SmaliObject, ChangesTypes
+from smali import SmaliObject, ChangesTypes, SmaliProject
 import sys
 
 def isEvolution(l):
@@ -56,7 +56,7 @@ def printName(m):
     return "{}.{}".format(m.parent.getDisplayName(m.parent.name), m.getSignature())
 
 
-keys = ["#C-", "#C+", "E", "R", "C", "MA", "MD", "MR", "MC", "MRev", "FA", "FD", "FC", "FR", "CA", "CD", "CC"]
+keys = ["#C-", "#C+", "#M-", "#M+", "E", "R", "C", "MA", "MD", "MR", "MC", "MRev", "FA", "FD", "FC", "FR", "CA", "CD", "CC"]
 
 
 def initMetricsDict(key, ret):
@@ -154,6 +154,27 @@ def splitInnerOuterChanged(diff):
     return innerDiff, outerDiff
 
 
+def countMethodsInProject(project):
+    cpt = 0
+    incpt = 0
+
+    for c in project.classes:
+        cpt += len(c.methods)
+
+        for ic in c.innerclasses:
+            incpt += countMethodsInClass(c.innerclasses[ic])
+
+    return cpt, incpt
+
+def countMethodsInClass(clazz):
+    cpt = len(clazz.methods)
+
+    for ic in clazz.innerclasses:
+        cpt += countMethodsInClass(clazz.innerclasses[ic])
+
+    return cpt
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Compute evolution metrics between two smali versions.')
     parser.add_argument('smaliv1', type=str,
@@ -202,9 +223,13 @@ if __name__ == '__main__':
         if old.isProjectObfuscated():
             raise ProjectObfuscatedException()
 
+        mold, moldin = countMethodsInProject(old)
+
         new = smali.SmaliProject.SmaliProject()
         new.parseProject(args.smaliv2, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged)
         #parseProject(new, args.smaliv2, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged)
+
+        mnew, mnewin = countMethodsInProject(new)
 
         if new.isProjectObfuscated():
             raise ProjectObfuscatedException()
@@ -215,12 +240,20 @@ if __name__ == '__main__':
 
         if args.no_innerclasses_split:
             initMetricsDict("", metrics)
+            metrics["#M-"] = mold + moldin
+            metrics["#M+"] =  mnew + mnewin
             computeMetrics(diff, metrics, "", not args.fulllinesofcode, args.aggregateoperators)
+
         else:
             innerDiff, outerDiff = splitInnerOuterChanged(diff)
 
             initMetricsDict("OUT", metrics)
             initMetricsDict("IN", metrics)
+            metrics["IN#M-"] = moldin
+            metrics["IN#M+"] = mnewin
+            metrics["OUT#M-"] = mold
+            metrics["OUT#M+"] = mnew
+
             computeMetrics(outerDiff, metrics, "OUT", not args.fulllinesofcode, args.aggregateoperators)
             computeMetrics(innerDiff, metrics, "IN", not args.fulllinesofcode, args.aggregateoperators)
 
@@ -237,7 +270,7 @@ if __name__ == '__main__':
             if len(b) > 0:
                 print("===== {} CLASSES =====".format(b))
 
-            print("v0 has %d classes, v1 has %d classes." % (metrics["{}{}".format(b, "#C-")], metrics["{}{}".format(b, "#C+")]))
+            print("v0 has {} classes/{} methods, v1 has {} classes/{} methods.".format(metrics["{}{}".format(b, "#C-")], metrics["{}{}".format(b, "#M-")], metrics["{}{}".format(b, "#C+")], metrics["{}{}".format(b, "#M+")]))
             print("E = %d. R = %d. C = %d." % (metrics["{}{}".format(b, "E")], metrics["{}{}".format(b, "R")], metrics["{}{}".format(b, "C")]))
             print("Classes - Added: %5d, Changed: %5d, Deleted: %5d." % (metrics["{}{}".format(b, "CA")], metrics["{}{}".format(b, "CC")], metrics["{}{}".format(b, "CD")]))
             print("Methods - Added: %5d, Revised: %5d, Changed: %5d, Renamed: %5d, Deleted: %5d." % (
