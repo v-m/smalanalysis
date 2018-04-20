@@ -24,7 +24,7 @@ def isEvolution(l):
     return atLeastOne
 
 
-def isRevision(l):
+def isMethodBodyChangeOnly(l):
     for d in l:
         if d[2] is not smali.ChangesTypes.REVISED_METHOD:
             return False
@@ -33,7 +33,7 @@ def isRevision(l):
 
 
 def isChange(l):
-    return len(l) > 0 and not isEvolution(l) and not isRevision(l)
+    return len(l) > 0 and not isEvolution(l) and not isMethodBodyChangeOnly(l)
 
 
 def skipThisClass(skips, clazz):
@@ -56,7 +56,7 @@ def printName(m):
     return "{}.{}".format(m.parent.getDisplayName(m.parent.name), m.getSignature())
 
 
-keys = ["#C-", "#C+", "#M-", "#M+", "E", "R", "C", "MA", "MD", "MR", "MC", "MRev", "FA", "FD", "FC", "FR", "CA", "CD", "CC"]
+keys = ["#C-", "#C+", "#M-", "#M+", "E", "B", "A", "D", "C", "MA", "MD", "MR", "MC", "MRev", "FA", "FD", "FC", "FR", "CA", "CD", "CC"]
 
 
 def initMetricsDict(key, ret):
@@ -95,12 +95,13 @@ def computeMetrics(r, out, metricKey="", diffOpOnly=True, aggregateOps=False):
         if isEvolution(l):
             out["{}E".format(metricKey)] += 1
 
-        if isRevision(l):
-            out["{}R".format(metricKey)] += 1
+        if isMethodBodyChangeOnly(l):
+            out["{}B".format(metricKey)] += 1
 
         if isChange(l):
             out["{}C".format(metricKey)] += 1
 
+        atLeastOneMethodAdded, atLeastOneMethodDeleted = False, False
         for rrr in rr[1]:
             if rrr[0] is not None and rrr[0].isField() and rrr[1] is None:
                 out["{}FD".format(metricKey)] += 1
@@ -113,8 +114,10 @@ def computeMetrics(r, out, metricKey="", diffOpOnly=True, aggregateOps=False):
                     out["{}FC".format(metricKey)] += 1
             elif rrr[0] is not None and rrr[0].isMethod() and rrr[1] is None:
                 out["{}MD".format(metricKey)] += 1
+                atLeastOneMethodDeleted = True
             elif rrr[1] is not None and rrr[1].isMethod() and rrr[0] is None:
                 out["{}MA".format(metricKey)] += 1
+                atLeastOneMethodAdded = True
             elif rrr[0] is not None and rrr[1] is not None and rrr[0].isMethod():
                 if rrr[2] == ChangesTypes.RENAMED_METHOD:
                     out["{}MR".format(metricKey)] += 1
@@ -139,7 +142,9 @@ def computeMetrics(r, out, metricKey="", diffOpOnly=True, aggregateOps=False):
                             cmd = cmd.split('/')[0].split('-')[0]
                         out["{}removedLines".format(metricKey)].add(cmd)
 
-    out["{}CC".format(metricKey)] += len(changedclass)
+        out["{}CC".format(metricKey)] += len(changedclass)
+        out["{}A".format(metricKey)] += 1 if atLeastOneMethodAdded else 0
+        out["{}D".format(metricKey)] += 1 if atLeastOneMethodDeleted else 0
 
 
 def splitInnerOuterChanged(diff):
@@ -271,7 +276,8 @@ if __name__ == '__main__':
                 print("===== {} CLASSES =====".format(b))
 
             print("v0 has {} classes/{} methods, v1 has {} classes/{} methods.".format(metrics["{}{}".format(b, "#C-")], metrics["{}{}".format(b, "#M-")], metrics["{}{}".format(b, "#C+")], metrics["{}{}".format(b, "#M+")]))
-            print("E = %d. R = %d. C = %d." % (metrics["{}{}".format(b, "E")], metrics["{}{}".format(b, "R")], metrics["{}{}".format(b, "C")]))
+            print("B = %d. A = %d. D = %d." % (metrics["{}{}".format(b, "B")], metrics["{}{}".format(b, "A")], metrics["{}{}".format(b, "D")]))
+            print("E = %d. C = %d." % (metrics["{}{}".format(b, "E")], metrics["{}{}".format(b, "C")]))
             print("Classes - Added: %5d, Changed: %5d, Deleted: %5d." % (metrics["{}{}".format(b, "CA")], metrics["{}{}".format(b, "CC")], metrics["{}{}".format(b, "CD")]))
             print("Methods - Added: %5d, Revised: %5d, Changed: %5d, Renamed: %5d, Deleted: %5d." % (
             metrics["{}{}".format(b, "MA")], metrics["{}{}".format(b, "MRev")], metrics["{}{}".format(b, "MC")], metrics["{}{}".format(b, "MR")], metrics["{}{}".format(b, "MD")]))
