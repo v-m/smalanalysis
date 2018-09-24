@@ -199,9 +199,9 @@ if __name__ == '__main__':
     parser.add_argument('--include-unpackaged', '-U', action='store_true',
                         help='Includes classes which are not in a package')
     parser.add_argument('--exclude-lists', '-e', type=str, nargs='*',
-                        help='Files containing excluded lits')
+                        help='Files containing excluded list')
     parser.add_argument('--include-lists', '-i', type=str, nargs='*',
-                        help='Files containing included lits')
+                        help='Files containing included list')
     parser.add_argument('--no-innerclasses-split', '-I', action='store_true',
                         help='Do not split metrics for inner/outer classes')
 

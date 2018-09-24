@@ -143,13 +143,16 @@ class SmaliProject(object):
             for s in includelist:
                 includes = includes.union(SmaliProject.loadRulesListFromFile(s))
 
-        if os.path.isfile(folder):
-            # This is a ZIP
-            zp = zipfile.ZipFile(folder, 'r')
-            SmaliProject.parseZipLoop(zp, self, package, skips=skips, includes=includes, include_unpackaged = include_unpackaged)
+        if os.path.exists(folder):
+            if os.path.isfile(folder):
+                # This is a ZIP
+                zp = zipfile.ZipFile(folder, 'r')
+                SmaliProject.parseZipLoop(zp, self, package, skips=skips, includes=includes, include_unpackaged = include_unpackaged)
+            else:
+                print("Parsing folder not supported anymore. Please use archive mode.")
+                #SmaliProject.parseFolderLoop(folder, folder, self, package, skips=skips, includes=includes, include_unpackaged = includeUnpackaged)
         else:
-            print("Parsing folder not supported anymore. Please use archive mode.")
-            #SmaliProject.parseFolderLoop(folder, folder, self, package, skips=skips, includes=includes, include_unpackaged = includeUnpackaged)
+            print("File {} not found!".format(folder))
 
     @staticmethod
     def parseZipLoop(zp, target, package=None, skips=None, includes=None, include_unpackaged=False):
@@ -165,7 +168,7 @@ class SmaliProject(object):
                 cls.parent = target
 
                 m2 = cls.name[1:-1].split("$")
-                if len(m2) > 1:
+                if len(m2) > 1 and m2[0][-1] != '/':
                     inner_classes.append((cls, m2[0], m2[1:]))
                 else:
                     classes[cls.name[1:-1]] = cls
@@ -184,12 +187,12 @@ class SmaliProject(object):
             looplevel += 1
 
             for e in inner_classes:
-                if e[1] not in classes:
-                    missing_class = smali.SmaliObject.SmaliClass(e[1])
-                    missing_class.name = "L{};".format(e[1])
-                    classes[e[1]] = missing_class
-                    # print("PUSHING {}".format(missing_class.name))
-                    target.addClass(missing_class)
+                # if e[1] not in classes:
+                #     missing_class = smali.SmaliObject.SmaliClass(e[1])
+                #     missing_class.name = "L{};".format(e[1])
+                #     classes[e[1]] = missing_class
+                #     # print("PUSHING {}".format(missing_class.name))
+                #     target.addClass(missing_class)
 
                 targetclass = classes[e[1]]
                 inner_class_path = list(e[2][:-1])
@@ -198,10 +201,10 @@ class SmaliProject(object):
                     while len(inner_class_path) > 0:
                         newLevel = inner_class_path.pop()
 
-                        if newLevel not in targetclass.innerclasses:
-                            missing_class = smali.SmaliObject.SmaliClass(e[1])
-                            missing_class.name = "L{}{};".format(targetclass.name[1:-1], newLevel)
-                            targetclass.innerclasses[newLevel] = missing_class
+                        # if newLevel not in targetclass.innerclasses:
+                        #     missing_class = smali.SmaliObject.SmaliClass(e[1])
+                        #     missing_class.name = "L{}{};".format(targetclass.name[1:-1], newLevel)
+                        #     targetclass.innerclasses[newLevel] = missing_class
 
                     targetclass.innerclasses[e[2][-1]] = e[0]
                     e[0].parent = targetclass
@@ -268,7 +271,7 @@ class SmaliProject(object):
 
         return similars, differents
 
-    def differences(self, other, ignores, processInnerClasses=True):
+    def differences(self, other, ignores, process_inner_classes=True):
         ret = []
         dd = self.matchClasses(other)
         classesMatching = {}
@@ -279,6 +282,7 @@ class SmaliProject(object):
             diff = sim[0].differences(sim[1], ignores)
             if len(diff) > 0:
                 rret.extend(diff)
+
             ret.append([sim, rret])
 
 
@@ -291,7 +295,7 @@ class SmaliProject(object):
         """
         Additional code for handling inner classes
         """
-        if processInnerClasses:
+        if process_inner_classes:
             processClasses = []
             for old, new in dd[0]:
                 if old.hasInnerClasses() or new.hasInnerClasses():
