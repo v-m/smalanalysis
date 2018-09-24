@@ -206,6 +206,7 @@ class SmaliProject(object):
 
                     targetclass.innerclasses[e[2][-1]] = e[0]
                     e[0].parent = targetclass
+                    e[0].innername = '$'.join(e[2])
                     processedAtLeastOne = True
 
     def searchClass(self, clazzName):

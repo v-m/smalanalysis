@@ -496,6 +496,7 @@ class SmaliClass(SmaliAnnotableModifiable):
     def __init__(self, project):
         super(SmaliClass, self).__init__(project)
         self.name = None
+        self.innername = None
         self.zuper = None
         self.source = None
         self.implements = set()
