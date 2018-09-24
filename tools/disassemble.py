@@ -70,7 +70,7 @@ if __name__ == '__main__':
     parser.add_argument('--overwrite', '-o', action='store_true',
                         help='Delete all previous exportation')
     parser.add_argument('--folder', '-f', action='store_true',
-                        help='Disassemble in a folder instead than a ZIP file')
+                        help='Disassemble in a folder instead than a ZIP file (deprecated)')
     parser.add_argument('--dont-merge', '-D', action='store_true',
                         help='If --folder, don\'t merge back all dexes in one folder')
 

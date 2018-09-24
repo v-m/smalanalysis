@@ -107,7 +107,7 @@ class SmaliProject(object):
 
     # 1 = class / 2 = ressource / 0 = skip
     @staticmethod
-    def keepThisFile(fullpath, package, includes, skips, includeUnpackaged):
+    def keepThisFile(fullpath, package, includes, skips, include_unpackaged):
         if fullpath.endswith('.smali'):
             skip = False
 
@@ -118,9 +118,9 @@ class SmaliProject(object):
                 return 2
 
             if '/' not in fullpath:
-                return 1 if includeUnpackaged else 0
+                return 1 if include_unpackaged else 0
 
-            if (skips is not None or includes is not None):
+            if skips is not None or includes is not None:
                 skip = not SmaliProject.shouldAnalyzeThisClass(fullpath, skips, includes, not skip)
 
             if fullpath.endswith('/BuildConfig.smali'):
@@ -131,7 +131,7 @@ class SmaliProject(object):
 
         return 0
 
-    def parseProject(self, folder, package = None, skiplists = None, includelist = None, includeUnpackaged = False):
+    def parseProject(self, folder, package=None, skiplists=None, includelist=None, include_unpackaged=False):
         skips = None
         includes = None
         if skiplists is not None:
@@ -146,18 +146,18 @@ class SmaliProject(object):
         if os.path.isfile(folder):
             # This is a ZIP
             zp = zipfile.ZipFile(folder, 'r')
-            SmaliProject.parseZipLoop(zp, self, package, skips=skips, includes=includes, includeUnpackaged = includeUnpackaged)
+            SmaliProject.parseZipLoop(zp, self, package, skips=skips, includes=includes, include_unpackaged = include_unpackaged)
         else:
             print("Parsing folder not supported anymore. Please use archive mode.")
-            #SmaliProject.parseFolderLoop(folder, folder, self, package, skips=skips, includes=includes, includeUnpackaged = includeUnpackaged)
+            #SmaliProject.parseFolderLoop(folder, folder, self, package, skips=skips, includes=includes, include_unpackaged = includeUnpackaged)
 
     @staticmethod
-    def parseZipLoop(zp, target, package=None, skips=None, includes=None, includeUnpackaged=False):
+    def parseZipLoop(zp, target, package=None, skips=None, includes=None, include_unpackaged=False):
         classes = {}
-        innerClasses = []
+        inner_classes = []
 
         for n in zp.namelist():
-            op = SmaliProject.keepThisFile(n, package, includes, skips, includeUnpackaged)
+            op = SmaliProject.keepThisFile(n, package, includes, skips, include_unpackaged)
 
             if op == 1:
                 ccontent = "".join(map(chr, zp.read(n)))
@@ -166,7 +166,7 @@ class SmaliProject(object):
 
                 m2 = cls.name[1:-1].split("$")
                 if len(m2) > 1:
-                    innerClasses.append((cls, m2[0], m2[1:]))
+                    inner_classes.append((cls, m2[0], m2[1:]))
                 else:
                     classes[cls.name[1:-1]] = cls
                     target.addClass(cls)
@@ -177,37 +177,36 @@ class SmaliProject(object):
 
         # Deal with inner classes now
         looplevel = 0
-        processedAtLeastOne = True
+        processed_at_least_one = True
 
-        while (processedAtLeastOne):
-            processedAtLeastOne = False
+        while processed_at_least_one:
+            processed_at_least_one = False
             looplevel += 1
 
-            for e in innerClasses:
-                # if e[1] not in classes:
-                #     missingClass = SmaliClass(old)
-                #     missingClass.name = "L{};".format(e[1])
-                #     classes[e[1]] = missingClass
-                #     print("PUSHING {}".format(missingClass.name))
-                #     target.addClass(missingClass)
+            for e in inner_classes:
+                if e[1] not in classes:
+                    missing_class = smali.SmaliObject.SmaliClass(e[1])
+                    missing_class.name = "L{};".format(e[1])
+                    classes[e[1]] = missing_class
+                    # print("PUSHING {}".format(missing_class.name))
+                    target.addClass(missing_class)
 
                 targetclass = classes[e[1]]
-                innerClassPath = list(e[2][:-1])
+                inner_class_path = list(e[2][:-1])
 
                 if len(e[2]) == looplevel:
-                    while (len(innerClassPath) > 0):
-                        newLevel = innerClassPath.pop()
+                    while len(inner_class_path) > 0:
+                        newLevel = inner_class_path.pop()
 
-                        # if newLevel not in targetclass.innerclasses:
-                        #     missingClass = SmaliClass(old)
-                        #     newClassName = "L{}{};".format(targetclass.name[1:-1], newLevel)
-                        #     missingClass.name = newClassName
-                        #     targetclass.innerclasses[newLevel] = missingClass
+                        if newLevel not in targetclass.innerclasses:
+                            missing_class = smali.SmaliObject.SmaliClass(e[1])
+                            missing_class.name = "L{}{};".format(targetclass.name[1:-1], newLevel)
+                            targetclass.innerclasses[newLevel] = missing_class
 
                     targetclass.innerclasses[e[2][-1]] = e[0]
                     e[0].parent = targetclass
                     e[0].innername = '$'.join(e[2])
-                    processedAtLeastOne = True
+                    processed_at_least_one = True
 
     def searchClass(self, clazzName):
         searchfor = clazzName

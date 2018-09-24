@@ -26,9 +26,9 @@ class TestHelper:
         TestHelper.prepare(v2)
 
         old = smali.SmaliProject.SmaliProject()
-        old.parseProject('%s/src/%s/smali.zip' % (TestHelper.getTestFolder(), v1), None, includeUnpackaged=True)
+        old.parseProject('%s/src/%s/smali.zip' % (TestHelper.getTestFolder(), v1), None, include_unpackaged=True)
         new = smali.SmaliProject.SmaliProject()
-        new.parseProject('%s/src/%s/smali.zip' % (TestHelper.getTestFolder(), v2), None, includeUnpackaged=True)
+        new.parseProject('%s/src/%s/smali.zip' % (TestHelper.getTestFolder(), v2), None, include_unpackaged=True)
 
         diff = old.differences(new, [])
 
