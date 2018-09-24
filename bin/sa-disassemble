@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+
+# Convenience method for getting smali bytecode from an APK using baksmali
+# Author: Vincenzo Musco (http://www.vmusco.com)
+# Creation date: 2017-09
+
 import argparse
 import shutil
 import subprocess
@@ -18,7 +24,7 @@ def zipdir(path, smalizip):
 
             smalizip.write(pth, pthinzip)
 
-def runSmali(apkpath, smalipath, overwrite=False, buildZip=False, mergeFolders=True):
+def runSmali(apkpath, smalipath, overwrite=False, buildZip=False, mergeFolders=True, custom_baksmali=None):
     if os.path.exists(smalipath):
         if overwrite:
             if os.path.isfile(smalipath):
@@ -37,11 +43,15 @@ def runSmali(apkpath, smalipath, overwrite=False, buildZip=False, mergeFolders=T
         if os.path.exists(fullsmalipath):
             shutil.rmtree(fullsmalipath)
 
-        base = os.path.realpath(__file__)
-        for i in range(2):
+        baksmali_bin = custom_baksmali
+        if baksmali_bin is None:
+            base = os.path.realpath(__file__)
+            print(base)
+            # for i in range(2):
             base = base[:base.rindex('/')]
+            baksmali_bin = "{}/sa-baksmali-2.2.1.jar disassemble".format(base)
 
-        task = subprocess.Popen('java -jar %s/bin/baksmali-2.2.1.jar disassemble "%s/%s" -o "%s"' % (base, apkpath, file, fullsmalipath), shell=True, stdout=subprocess.PIPE)
+        task = subprocess.Popen('java -jar %s "%s/%s" -o "%s"' % (baksmali_bin, apkpath, file, fullsmalipath), shell=True, stdout=subprocess.PIPE)
         task.wait()
 
     z.close()
@@ -73,6 +83,8 @@ if __name__ == '__main__':
                         help='Disassemble in a folder instead than a ZIP file (deprecated)')
     parser.add_argument('--dont-merge', '-D', action='store_true',
                         help='If --folder, don\'t merge back all dexes in one folder')
+    parser.add_argument('--custom-baksmali', '-b', type=str, default = None,
+                        help='Do not use the included baksmali binary and specify one')
 
     args = parser.parse_args()
 
@@ -86,4 +98,4 @@ if __name__ == '__main__':
 
     overwrite = args.overwrite
 
-    runSmali(apkpath, output, overwrite, not dofolder, not dontmerge)
+    runSmali(apkpath, output, overwrite, not dofolder, not dontmerge, args.custom_baksmali)

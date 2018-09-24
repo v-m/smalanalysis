@@ -7,7 +7,7 @@ cd $1
 javac -source 1.7 -target 1.7 -Xlint:none $(find . -iname '*.java');
 dx --dex --output=classes.dex $(find . -iname '*.class');
 rm $(find . -iname '*.class')
-java -jar ../../../bin/baksmali-2.2.1.jar disassemble classes.dex;
+java -jar ../../../bin/sa-baksmali-2.2.1.jar disassemble classes.dex;
 rm *.dex;
 cd out;
 zip -r smali.zip *;

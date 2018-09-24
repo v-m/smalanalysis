@@ -3,8 +3,9 @@
 # Date: 2017-09-15
 import re
 
-from smali import ComparisonIgnores, ChangesTypes
-import smali.SmaliProject
+from smalanalysis.smali import ComparisonIgnores, ChangesTypes
+import smalanalysis.smali.SmaliProject
+import smalanalysis.smali.SmaliObject
 
 NOT_SAME_NAME = 'NOT_SAME_NAME'
 NOT_SAME_RETURN_TYPE = 'NOT_SAME_RETURN_TYPE'
@@ -153,7 +154,7 @@ class SmaliAnnotableModifiable(object):
     def getParentProjectIfAny(self):
         trg = self.parent
 
-        while trg is not None and not isinstance(trg, smali.SmaliProject.SmaliProject):
+        while trg is not None and not isinstance(trg, smalanalysis.smali.SmaliProject.SmaliProject):
             trg = trg.parent
 
         return trg
@@ -312,7 +313,7 @@ class SmaliWithLines(SmaliAnnotableModifiable):
             olines = SmaliMethod.clearInnerClassesReferences(olines)
 
         if mappings is not None:
-            slines = SmaliMethod.transposeWithNewReferences(slines, mappings)
+            slines = self.transposeWithNewReferences(slines, mappings)
 
 
         return compareListsSameposition(slines, olines)
@@ -865,13 +866,13 @@ class SmaliClass(SmaliAnnotableModifiable):
         if m is not None:
             return field.name.strip() == m.group(2).strip() and field.type.strip() == m.group(3).strip()
 
-    def findFieldWithMethodCall(self, fcall):
-        if self.name == m.group(1):
-            for f in self.fields:
-                if SmaliClass.matchFieldAndFieldCall(f, fcall):
-                    return f
+    # def findFieldWithMethodCall(self, fcall):
+    #     if self.name == m.group(1):
+    #         for f in self.fields:
+    #             if SmaliClass.matchFieldAndFieldCall(f, fcall):
+    #                 return f
 
-        return None
+    #     return None
 
     def findMethod(self, name, parameters, ret):
         for m in self.methods:

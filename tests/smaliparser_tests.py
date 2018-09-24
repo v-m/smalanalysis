@@ -5,7 +5,7 @@ import subprocess
 # Unit test for smali class generation
 # Date: November 7, 2017
 # Author: Vincenzo Musco (http://www.vmusco.com)
-from smali.SmaliProject import SmaliProject
+from smalanalysis.smali.SmaliProject import SmaliProject
 
 
 class SmaliParseTesting(unittest.TestCase):

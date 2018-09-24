@@ -1,17 +1,19 @@
 import unittest
-import tests.diff_tests
 
 # Unit test for diff metrics script
+from tests.TestHelper import TestHelper
 
 
-class XinBasicMetricTesting(tests.diff_tests.BasicMetricTesting):
+class XinBasicMetricTesting(unittest.TestCase):
 
     ## TESTS START HERE ##
 
     #Initialize the field
-    def test_field_init(self):
-        pass
-        #self.runTestForTwoVersions('v2', 'v3', {'#C-': 1, '#C+': 1, 'R': 1, 'MC': 1, 'CC': 1})
+    def test_debug(self):
+        TestHelper.runTestForTwoVersions(self, 'vY', 'vX',
+                                         {'OUT#C-': 1, 'OUT#C+': 1, 'OUTR': 1, 'OUTMC': 1, 'OUTCC': 1, 'IN#C-': 4,
+                                          'IN#C+': 4, 'INMC': 1, 'INR': 1, 'INCA': 1, 'INCD': 1, 'INCC': 1}, True)
+
 
 
 

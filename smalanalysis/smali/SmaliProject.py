@@ -8,23 +8,24 @@ import os
 import sys
 import zipfile
 
-import smali.SmaliObject
-from smali import ComparisonIgnores
-from smali.ChangesTypes import REVISED_METHOD, SAME_NAME
+import smalanalysis.smali.SmaliObject
+from smalanalysis.smali import ComparisonIgnores
+from smalanalysis.smali.ChangesTypes import REVISED_METHOD, SAME_NAME
 
 
 class MATCHERS:
     obj = "(\\[*(L[a-zA-Z0-9/_$\\-]+;|Z|B|S|C|I|J|F|D|V))"
-    method_reg = re.compile("\\.method( [a-z \\-]+?)*( [a-zA-Z0-9<>_$\\-]+){1}\\((.*)\\)(.*)") #Without obfuscation
+    method_reg = re.compile("\\.method( [a-z \\-]+?)*( [a-zA-Z0-9<>_$\\-]+){1}\\((.*)\\)(.*)")  # Without obfuscation
     method = re.compile("\\.method( [a-z \\-]+?)*( [^ ]+){1}\\((.*)\\)(.*)")
-    method_param = re.compile("%s"%obj)
-    field_init = re.compile("%s( = .*)"%obj)
-    fields_reg = re.compile("\\.field( [a-z ]+)*( [a-zA-Z0-9_$\\-]*)+?:(.*)")       #Without obfuscation
+    method_param = re.compile("%s" % obj)
+    field_init = re.compile("%s( = .*)" % obj)
+    fields_reg = re.compile("\\.field( [a-z ]+)*( [a-zA-Z0-9_$\\-]*)+?:(.*)")  # Without obfuscation
     fields = re.compile("\\.field( [a-z ]+)*( [^ ]*)+:([^:]*)")
     clazz = re.compile("\\.class( [a-z ]+)*( [a-zA-Z][a-zA-Z0-9_\\-/$]*)+?;")
     annotation = re.compile("\\.annotation( [a-z ]+)*( L[a-zA-Z0-9_/$]*);")
     ressource_classes = re.compile("^.*/R(\\$[a-z]+)?\\.smali$")
     hex_ref = re.compile("0x[0-9abcdef]{2,}")
+
 
 class SmaliProject(object):
     def __init__(self):
@@ -45,7 +46,6 @@ class SmaliProject(object):
 
         pass
 
-
     def isProjectObfuscated(self):
         keep, skip = 0, 0
 
@@ -64,7 +64,7 @@ class SmaliProject(object):
         return skip / keep > 0.75
 
     @staticmethod
-    def shouldAnalyzeThisClass(classname, skips = None, includes = None, default = True):
+    def shouldAnalyzeThisClass(classname, skips=None, includes=None, default=True):
         clazz = classname
 
         if '/' in classname:
@@ -103,7 +103,6 @@ class SmaliProject(object):
             rules.add(entry.strip())
 
         return rules
-
 
     # 1 = class / 2 = ressource / 0 = skip
     @staticmethod
@@ -147,10 +146,11 @@ class SmaliProject(object):
             if os.path.isfile(folder):
                 # This is a ZIP
                 zp = zipfile.ZipFile(folder, 'r')
-                SmaliProject.parseZipLoop(zp, self, package, skips=skips, includes=includes, include_unpackaged = include_unpackaged)
+                SmaliProject.parseZipLoop(zp, self, package, skips=skips, includes=includes,
+                                          include_unpackaged=include_unpackaged)
             else:
                 print("Parsing folder not supported anymore. Please use archive mode.")
-                #SmaliProject.parseFolderLoop(folder, folder, self, package, skips=skips, includes=includes, include_unpackaged = includeUnpackaged)
+                # SmaliProject.parseFolderLoop(folder, folder, self, package, skips=skips, includes=includes, include_unpackaged = includeUnpackaged)
         else:
             print("File {} not found!".format(folder))
 
@@ -195,11 +195,11 @@ class SmaliProject(object):
                 #     target.addClass(missing_class)
 
                 targetclass = classes[e[1]]
-                inner_class_path = list(e[2][:-1])
+                # inner_class_path = list(e[2][:-1])
 
                 if len(e[2]) == looplevel:
-                    while len(inner_class_path) > 0:
-                        newLevel = inner_class_path.pop()
+                    # while len(inner_class_path) > 0:
+                        # newLevel = inner_class_path.pop()
 
                         # if newLevel not in targetclass.innerclasses:
                         #     missing_class = smali.SmaliObject.SmaliClass(e[1])
@@ -218,7 +218,7 @@ class SmaliProject(object):
             searchfor = searchfor.replace('/', '.')
 
         if not (searchfor[0] == 'L' and searchfor[-1] == ';'):
-            searchfor = 'L%s;'%(searchfor)
+            searchfor = 'L%s;' % (searchfor)
 
         for c in self.classes:
             if c is None or c.name is None:
@@ -285,7 +285,6 @@ class SmaliProject(object):
 
             ret.append([sim, rret])
 
-
         for sim in dd[0]:
             appendMatchedCase(sim)
 
@@ -302,7 +301,7 @@ class SmaliProject(object):
                     processClasses.append((old, new))
                 elif len(old.innerclasses) + len(new.innerclasses) > 0:
                     # Should not happen
-                    assert(False)
+                    assert (False)
 
             while len(processClasses) > 0:
                 popped = processClasses.pop()
@@ -333,7 +332,7 @@ class SmaliProject(object):
                 for insertedInnerClasses in result[2]:
                     ret.append([[None, insertedInnerClasses], None])
 
-            #Not matched inner classes
+            # Not matched inner classes
             for diff in dd[1]:
                 def analyseIt(clazz, innerclasses):
                     for i in clazz.innerclasses:
@@ -343,14 +342,15 @@ class SmaliProject(object):
                 innerclasses = []
                 analyseIt(diff[1 if diff[0] is None else 0], innerclasses)
 
-                for r in map(lambda x: [[None if diff[0] is None else x, x if diff[0] is None else None], None], innerclasses):
+                for r in map(lambda x: [[None if diff[0] is None else x, x if diff[0] is None else None], None],
+                             innerclasses):
                     ret.append(r)
 
         return ret
 
     @staticmethod
     def parseClass(ccontent):
-        clazz = smali.SmaliObject.SmaliClass(None)
+        clazz = smalanalysis.smali.SmaliObject.SmaliClass(None)
 
         # Class declaration
         readingmethod = None
@@ -384,7 +384,8 @@ class SmaliProject(object):
                 matched = MATCHERS.clazz.match(line)
                 if matched is not None:
                     clazz.setName('%s;' % (matched.group(2).strip()))
-                    clazz.addModifiersFromList(matched.group(1).strip().split(' ') if matched.group(1) is not None else None)
+                    clazz.addModifiersFromList(
+                        matched.group(1).strip().split(' ') if matched.group(1) is not None else None)
                     continue
 
                 if line.startswith('.super '):
@@ -404,7 +405,7 @@ class SmaliProject(object):
                     modifiers = matched.group(1).strip().split(' ')
                     name = matched.group(2)
 
-                    readingannotation = smali.SmaliObject.SmaliAnnotation(name, modifiers, clazz)
+                    readingannotation = smalanalysis.smali.SmaliObject.SmaliAnnotation(name, modifiers, clazz)
                     continue
 
                 matched = MATCHERS.method.match(line)
@@ -418,11 +419,11 @@ class SmaliProject(object):
                         modifiers = matched.group(1).strip().split(' ') if matched.group(1) is not None else None
 
                     name = name.strip()
-                    parameters = [it[0] for it in MATCHERS.method_param.findall(matched.group(3)) ]
+                    parameters = [it[0] for it in MATCHERS.method_param.findall(matched.group(3))]
 
                     returnval = matched.group(4)
 
-                    readingmethod = smali.SmaliObject.SmaliMethod(name, parameters, returnval, modifiers, clazz)
+                    readingmethod = smalanalysis.smali.SmaliObject.SmaliMethod(name, parameters, returnval, modifiers, clazz)
                     currentobj = readingmethod
                     clazz.addMethod(readingmethod)
                     continue
@@ -437,11 +438,13 @@ class SmaliProject(object):
                         type = matched2.group(1)
                         init = matched2.group(3)[3:]
 
-                    currentobj = smali.SmaliObject.SmaliField(matched.group(2).strip(), type, matched.group(1).strip().split(' ') if matched.group(1) is not None else None, init, clazz)
+                    currentobj = smalanalysis.smali.SmaliObject.SmaliField(matched.group(2).strip(), type,
+                                                              matched.group(1).strip().split(' ') if matched.group(
+                                                                  1) is not None else None, init, clazz)
                     clazz.addField(currentobj)
                     continue
 
-                sys.stderr.write("Parsing error.\nLine: %s.\n"%line)
+                sys.stderr.write("Parsing error.\nLine: %s.\n" % line)
                 sys.exit(1)
 
         return clazz
@@ -460,7 +463,7 @@ class SmaliProject(object):
     #     assert (False)
 
     def equals(self, other, mappings=None):
-        return smali.compareListsBoolean(self.classes, other.classes)
+        return smalanalysis.smali.SmaliObject.compareListsBoolean(self.classes, other.classes)
 
     # def signatureEq(self, other):
     #     return compareListsBoolean(self.classes, other.classes, True)

@@ -3,7 +3,7 @@ import unittest
 # Unit test for diff metrics script
 # Date: November 6, 2017
 # Author: Vincenzo Musco (http://www.vmusco.com)
-import smali.SmaliProject
+import smalanalysis.smali.SmaliProject
 from tests.TestHelper import TestHelper
 
 
