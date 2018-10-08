@@ -39,7 +39,7 @@ Then, to proceed with the installation, clone the repo and install it using pip:
 
 ```
 git clone https://github.com/v-m/smalanalysis.git
-pip install smalanalysis.git
+pip install smalanalysis
 ```
 
 ## Disassembling
