@@ -35,11 +35,10 @@ Moreover, the following tools should be installed and present in the system `PAT
 - JRE
 - Android `aapt` command
 
-Then, to proceed with the installation, clone the repo and install it using pip:
+Then, to proceed with the installation using pip:
 
 ```
-git clone https://github.com/v-m/smalanalysis.git
-pip install smalanalysis
+pip install git+https://github.com/v-m/smalanalysis.git
 ```
 
 ## Disassembling
