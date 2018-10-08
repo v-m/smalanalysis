@@ -46,8 +46,6 @@ def runSmali(apkpath, smalipath, overwrite=False, buildZip=False, mergeFolders=T
         baksmali_bin = custom_baksmali
         if baksmali_bin is None:
             base = os.path.realpath(__file__)
-            print(base)
-            # for i in range(2):
             base = base[:base.rindex('/')]
             baksmali_bin = "{}/sa-baksmali-2.2.1.jar disassemble".format(base)
 
