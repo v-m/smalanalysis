@@ -10,6 +10,7 @@ import subprocess
 import os
 import zipfile
 import re
+import smalanalysis
 
 COMPRESSION_METHOD = zipfile.ZIP_DEFLATED
 
@@ -45,11 +46,9 @@ def runSmali(apkpath, smalipath, overwrite=False, buildZip=False, mergeFolders=T
 
         baksmali_bin = custom_baksmali
         if baksmali_bin is None:
-            base = os.path.realpath(__file__)
-            base = base[:base.rindex('/')]
-            baksmali_bin = "{}/sa-baksmali-2.2.1.jar disassemble".format(base)
+            baksmali_bin = smalanalysis.get_baksmali_bin()
 
-        task = subprocess.Popen('java -jar %s "%s/%s" -o "%s"' % (baksmali_bin, apkpath, file, fullsmalipath), shell=True, stdout=subprocess.PIPE)
+        task = subprocess.Popen('java -jar %s disassemble "%s/%s" -o "%s"' % (baksmali_bin, apkpath, file, fullsmalipath), shell=True, stdout=subprocess.PIPE)
         task.wait()
 
     z.close()
