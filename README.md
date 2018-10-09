@@ -78,7 +78,7 @@ After disassembling an APK, the structure of the APK is represented based on an 
 
 At this stage `proj` contains a representation of the project (ie a `SmaliProject` class).
 
-[Learn more in the wiki page.](../../wiki/Analyzing)
+[Learn more in the wiki page.](../../wiki/Analyzing-APKs)
 
 ## Diffing APKs
 
