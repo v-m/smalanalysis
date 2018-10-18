@@ -116,20 +116,18 @@ if args.verbose:
         for l in metrics["{}{}".format(b, "removedLines")]:
             print("\t- {}".format(l))
 else:
-    # for b in bases:
-    #     for k in keys:
-    #         print("{}{},".format(b, k), end='')
-    #
-    #     print("{}addedLines,{}removedLines,".format(b, b), end='')
-    #
-    # print("")
-
+    headers_printed = False
     for b in bases:
-        for k in Metrics.keys:
-            print("%d," % metrics["{}{}".format(b, k)], end='')
-        print('|'.join(metrics["{}addedLines".format(b)]), end='')
-        print(",", end='')
-        print('|'.join(metrics["{}removedLines".format(b)]), end='')
-        print(",", end='')
+        if not headers_printed:
+            print("Scope", end=',')
+            for k in filter(lambda x: type(metrics[x]) != set and x.startswith(b), metrics.keys()):
+                print(k[len(b):], end=',')
+            print("addedLines", end=',')
+            print("removedLines")
+            headers_printed = True
 
-    print("")
+        print(b, end=',')
+        for k in filter(lambda x: type(metrics[x]) != set and x.startswith(b), metrics.keys()):
+            print("%d" % metrics[k], end=',')
+        print('|'.join(metrics["{}addedLines".format(b)]), end=',')
+        print('|'.join(metrics["{}removedLines".format(b)]))
