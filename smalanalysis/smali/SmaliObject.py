@@ -464,7 +464,7 @@ def compareWithMapping(old, new, mappings):
     oldres = old
 
     if mappings is not None and "$" in old:
-        oldres = "L{};".format(re.match("L(.*?)(\$(.*))?;", old).group(1))
+        oldres = "L{};".format(re.match("(\[*?)L(.*?)(\$(.*))?;", old).group(2))
 
     if mappings is not None and oldres in mappings:
         if(mappings[oldres] == new):

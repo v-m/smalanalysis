@@ -10,7 +10,6 @@ import zipfile
 
 import smalanalysis.smali.SmaliObject
 from smalanalysis.smali import ComparisonIgnores
-from smalanalysis.smali.SmaliObject import SmaliClass
 from smalanalysis.smali.ChangesTypes import REVISED_METHOD, SAME_NAME
 
 
@@ -189,7 +188,7 @@ class SmaliProject(object):
 
             for e in inner_classes:
                 if e[1] not in classes:
-                    missing_class = SmaliClass(e[1])
+                    missing_class = smalanalysis.smali.SmaliObject.SmaliClass(e[1])
                     missing_class.name = "L{};".format(e[1])
                     classes[e[1]] = missing_class
                     target.addClass(missing_class)
