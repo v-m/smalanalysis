@@ -6,4 +6,4 @@ smali.zip
 venv
 .idea
 .vscode
-.class
+*.class

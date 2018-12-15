@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
-# Computing Metrics
-# Author: Vincenzo Musco (http://www.vmusco.com)
-# Creation date: 2017-09-15
+"""Computing Metrics"""
+
+__author__ = "Vincenzo Musco (http://www.vmusco.com)"
+__date__ = "2017-09-15"
+
 import argparse
 import sys
-from smalanalysis.smali import SmaliObject, ChangesTypes, SmaliProject, Metrics
+from smalanalysis.smali import metrics
+from smalanalysis.smali.project import SmaliProject, ModeDeprecatedError
 
 parser = argparse.ArgumentParser(description='Compute evolution metrics between two smali versions.')
 parser.add_argument('smaliv1', type=str,
@@ -14,27 +17,27 @@ parser.add_argument('smaliv2', type=str,
                     help='Version 2 folder containing smali files')
 parser.add_argument('pkg', type=str,
                     help='The app package name')
-parser.add_argument('--verbose', '-v', action='store_true',
+parser.add_argument('-v', '--verbose', action='store_true',
                     help='Show metrics details')
-parser.add_argument('--onlyapppackage', '-P', action='store_true',
+parser.add_argument('-P', '--only-app-package', action='store_true',
                     help='Includes only classes in the app package specified')
-parser.add_argument('--fulllinesofcode', '-f', action='store_true',
+parser.add_argument('-f', '--full-lines-of-code', action='store_true',
                     help='Show full lines instead of opcodes for differences')
-parser.add_argument('--aggregateoperators', '-a', action='store_true',
-                    help='Aggregate the operator by their first keywork.')
-parser.add_argument('--include-unpackaged', '-U', action='store_true',
+parser.add_argument('-a', '--aggregate-operators', action='store_true',
+                    help='Aggregate the operator by their first keyword.')
+parser.add_argument('-U', '--include-unpackaged', action='store_true',
                     help='Includes classes which are not in a package')
-parser.add_argument('--exclude-lists', '-e', type=str, nargs='*',
+parser.add_argument('-e', '--exclude-lists', type=str, nargs='*',
                     help='Files containing excluded list')
-parser.add_argument('--include-lists', '-i', type=str, nargs='*',
+parser.add_argument('-i', '--include-lists', type=str, nargs='*',
                     help='Files containing included list')
-parser.add_argument('--no-innerclasses-split', '-I', action='store_true',
+parser.add_argument('-I', '--no-innerclasses-split', action='store_true',
                     help='Do not split metrics for inner/outer classes')
 
 args = parser.parse_args()
 
 pkg = None
-if args.onlyapppackage:
+if args.only_app_package:
     pkg = args.pkg
     if args.verbose:
         print("Including classes only in %s" % pkg)
@@ -42,54 +45,55 @@ if args.onlyapppackage:
 if args.verbose and args.exclude_lists:
     print("Ignoring classes includes in these files: %s" % args.exclude_lists)
 
-if args.aggregateoperators and args.fulllinesofcode:
+if args.aggregate_operators and args.full_lines_of_code:
     print("Aggregation and full lines cannot be enabled at the same time!")
     sys.exit(1)
 
 try:
-    old = SmaliProject.SmaliProject()
-    old.parseProject(args.smaliv1, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged)
-    #parseProject(old, args.smaliv1, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged)
+    old = SmaliProject.parse_project(args.smaliv1, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged)
 
-    if old.isProjectObfuscated():
-        raise Metrics.ProjectObfuscatedException()
+    if old.is_project_obfuscated():
+        raise metrics.ProjectObfuscatedException()
 
-    mold, moldin = Metrics.countMethodsInProject(old)
+    new = SmaliProject.parse_project(args.smaliv2, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged)
 
-    new = SmaliProject.SmaliProject()
-    new.parseProject(args.smaliv2, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged)
-    #parseProject(new, args.smaliv2, pkg, args.exclude_lists, args.include_lists, args.include_unpackaged)
+    if new.is_project_obfuscated():
+        raise metrics.ProjectObfuscatedException()
 
-    mnew, mnewin = Metrics.countMethodsInProject(new)
-
-    if new.isProjectObfuscated():
-        raise Metrics.ProjectObfuscatedException()
+    metrics_old, metrics_old_inner = metrics.count_methods_in_project(old)
+    metrics_new, metrics_new_inner = metrics.count_methods_in_project(new)
 
     diff = old.differences(new, [])
 
-    metrics = {}
+    computed_metrics = {}
 
     if args.no_innerclasses_split:
-        Metrics.initMetricsDict("", metrics)
-        metrics["#M-"] = mold + moldin
-        metrics["#M+"] =  mnew + mnewin
-        Metrics.computeMetrics(diff, metrics, "", not args.fulllinesofcode, args.aggregateoperators)
+        metrics.init_metrics_dict("", computed_metrics)
+        computed_metrics["#M-"] = metrics_old + metrics_old_inner
+        computed_metrics["#M+"] = metrics_new + metrics_new_inner
+        metrics.compute_metrics(diff, computed_metrics, "", not args.full_lines_of_code, args.aggregate_operators)
 
     else:
-        innerDiff, outerDiff = Metrics.splitInnerOuterChanged(diff)
+        innerDiff, outerDiff = metrics.split_inner_outer_changed(diff)
 
-        Metrics.initMetricsDict("OUT", metrics)
-        Metrics.initMetricsDict("IN", metrics)
-        metrics["IN#M-"] = moldin
-        metrics["IN#M+"] = mnewin
-        metrics["OUT#M-"] = mold
-        metrics["OUT#M+"] = mnew
+        metrics.init_metrics_dict("OUT", computed_metrics)
+        metrics.init_metrics_dict("IN", computed_metrics)
+        computed_metrics["IN#M-"] = metrics_old_inner
+        computed_metrics["IN#M+"] = metrics_new_inner
+        computed_metrics["OUT#M-"] = metrics_old
+        computed_metrics["OUT#M+"] = metrics_new
 
-        Metrics.computeMetrics(outerDiff, metrics, "OUT", not args.fulllinesofcode, args.aggregateoperators)
-        Metrics.computeMetrics(innerDiff, metrics, "IN", not args.fulllinesofcode, args.aggregateoperators)
+        metrics.compute_metrics(outerDiff, computed_metrics, "OUT", not args.full_lines_of_code, args.aggregate_operators)
+        metrics.compute_metrics(innerDiff, computed_metrics, "IN", not args.full_lines_of_code, args.aggregate_operators)
 
-except Metrics.ProjectObfuscatedException:
+except metrics.ProjectObfuscatedException:
     print("This project is obfuscated. Unable to proceed.", file=sys.stderr)
+    sys.exit(1)
+except FileNotFoundError:
+    print("File not found")
+    sys.exit(1)
+except ModeDeprecatedError:
+    print("Folder mode is not supported anymore")
     sys.exit(1)
 
 bases = [""]
@@ -101,19 +105,17 @@ if args.verbose:
         if len(b) > 0:
             print("===== {} CLASSES =====".format(b))
 
-        print("v0 has {} classes/{} methods, v1 has {} classes/{} methods.".format(metrics["{}{}".format(b, "#C-")], metrics["{}{}".format(b, "#M-")], metrics["{}{}".format(b, "#C+")], metrics["{}{}".format(b, "#M+")]))
-        print("B = %d. A = %d. D = %d." % (metrics["{}{}".format(b, "B")], metrics["{}{}".format(b, "A")], metrics["{}{}".format(b, "D")]))
-        print("E = %d. C = %d." % (metrics["{}{}".format(b, "E")], metrics["{}{}".format(b, "C")]))
-        print("Classes - Added: %5d, Changed: %5d, Deleted: %5d." % (metrics["{}{}".format(b, "CA")], metrics["{}{}".format(b, "CC")], metrics["{}{}".format(b, "CD")]))
-        print("Methods - Added: %5d, Revised: %5d, Changed: %5d, Renamed: %5d, Deleted: %5d." % (
-        metrics["{}{}".format(b, "MA")], metrics["{}{}".format(b, "MRev")], metrics["{}{}".format(b, "MC")], metrics["{}{}".format(b, "MR")], metrics["{}{}".format(b, "MD")]))
-        print(" Fields - Added: %5d, Changed: %5d, Renamed: %5d, Deleted: %5d." % (
-        metrics["{}{}".format(b, "FA")], metrics["{}{}".format(b, "FC")], metrics["{}{}".format(b, "FR")], metrics["{}{}".format(b, "FD")]))
+        print("v0 has {} classes/{} methods, v1 has {} classes/{} methods.".format(computed_metrics["{}{}".format(b, "#C-")], computed_metrics["{}{}".format(b, "#M-")], computed_metrics["{}{}".format(b, "#C+")], computed_metrics["{}{}".format(b, "#M+")]))
+        print("B = %d. A = %d. D = %d." % (computed_metrics["{}{}".format(b, "B")], computed_metrics["{}{}".format(b, "A")], computed_metrics["{}{}".format(b, "D")]))
+        print("E = %d. C = %d." % (computed_metrics["{}{}".format(b, "E")], computed_metrics["{}{}".format(b, "C")]))
+        print("Classes - Added: %5d, Changed: %5d, Deleted: %5d." % (computed_metrics["{}{}".format(b, "CA")], computed_metrics["{}{}".format(b, "CC")], computed_metrics["{}{}".format(b, "CD")]))
+        print("Methods - Added: %5d, Revised: %5d, Changed: %5d, Renamed: %5d, Deleted: %5d." % (computed_metrics["{}{}".format(b, "MA")], computed_metrics["{}{}".format(b, "MRev")], computed_metrics["{}{}".format(b, "MC")], computed_metrics["{}{}".format(b, "MR")], computed_metrics["{}{}".format(b, "MD")]))
+        print(" Fields - Added: %5d, Changed: %5d, Renamed: %5d, Deleted: %5d." % (computed_metrics["{}{}".format(b, "FA")], computed_metrics["{}{}".format(b, "FC")], computed_metrics["{}{}".format(b, "FR")], computed_metrics["{}{}".format(b, "FD")]))
         print("Added lines:")
-        for l in metrics["{}{}".format(b, "addedLines")]:
+        for l in computed_metrics["{}{}".format(b, "addedLines")]:
             print("\t- {}".format(l))
         print("Removed lines:")
-        for l in metrics["{}{}".format(b, "removedLines")]:
+        for l in computed_metrics["{}{}".format(b, "removedLines")]:
             print("\t- {}".format(l))
 else:
     headers_printed = False

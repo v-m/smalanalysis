@@ -7,47 +7,47 @@ import unittest
 import subprocess
 import os
 import shutil
-from smalanalysis.smali import Metrics
-import smalanalysis.smali.SmaliProject
+from smalanalysis.smali import metrics
+import smalanalysis.smali.project
 from tests.TestHelper import TestHelper
 
 
 class TestUM(unittest.TestCase):
     @staticmethod
     def computeMetrics(v1, v2, pkg):
-        testfold = TestUM.getTestFolder()
+        test_folder = TestUM.get_test_folder()
 
-        old = smalanalysis.smali.SmaliProject.SmaliProject()
-        old.parseProject('%s/%s' % (testfold, v1), pkg)
-        new = smalanalysis.smali.SmaliProject.SmaliProject()
-        new.parseProject('%s/%s' % (testfold, v2), pkg)
+        old = smalanalysis.smali.project.SmaliProject()
+        old._parse_project('%s/%s' % (test_folder, v1), pkg)
+        new = smalanalysis.smali.project.SmaliProject()
+        new._parse_project('%s/%s' % (test_folder, v2), pkg)
 
         malg = {}
 
         diff = old.differences(new, [])
-        Metrics.initMetricsDict("", malg)
-        Metrics.computeMetrics(diff, malg)
+        metrics.init_metrics_dict("", malg)
+        metrics.compute_metrics(diff, malg)
 
         return malg
 
     @staticmethod
-    def getTestFolder():
+    def get_test_folder():
         return os.path.realpath(__file__)[:-1 * len(os.path.basename(__file__))]
 
     @staticmethod
     def prepare(v1):
         if not os.path.exists(v1):
             name = v1.replace('.apk.smali', '.apk')
-            subprocess.run(['../bin/sa-disassemble', name], stdout=subprocess.PIPE, cwd=TestUM.getTestFolder())
+            subprocess.run(['../bin/sa-disassemble', name], stdout=subprocess.PIPE, cwd=TestUM.get_test_folder())
 
     @classmethod
     def tearDownClass(cls):
-        for p in os.listdir(TestUM.getTestFolder()):
-            fullfile = '%s/%s'%(TestUM.getTestFolder(), p)
-            if p.endswith('.apk.smali') and os.path.isdir(fullfile):
-                shutil.rmtree(fullfile)
+        for p in os.listdir(TestUM.get_test_folder()):
+            full_file = '%s/%s'%(TestUM.get_test_folder(), p)
+            if p.endswith('.apk.smali') and os.path.isdir(full_file):
+                shutil.rmtree(full_file)
 
-    def test_v1v2_changesinStrings_xml(self):
+    def test_v1v2_changes_in_strings_xml(self):
         pkg = 'com.example.xinyin.myapplication'
         v1 = 'apks/app1.apk.smali'
         v2 = 'apks/app2.apk.smali'
@@ -56,9 +56,9 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v2)
 
         malg = TestUM.computeMetrics(v1, v2, pkg)
-        TestHelper.metricsScoreComparing(self, malg, {})
+        TestHelper.metrics_score_comparing(self, malg, {})
     
-    def test_v2v3_renameingonemethod(self):
+    def test_v2v3_renameing_one_method(self):
         pkg = 'com.example.xinyin.myapplication'
         v1 = 'apks/app2.apk.smali'
         v2 = 'apks/app3.apk.smali'
@@ -68,9 +68,9 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v2)
 
         malg = TestUM.computeMetrics(v1, v2, pkg)
-        TestHelper.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "MR": 1})
+        TestHelper.metrics_score_comparing(self, malg, {"C": 1, "CC": 1, "MR": 1})
 
-    def test_v3v4_renameingonefield(self):
+    def test_v3v4_renameing_one_field(self):
         pkg = 'com.example.xinyin.myapplication'
         v1 = 'apks/app3.apk.smali'
         v2 = 'apks/app4.apk.smali'
@@ -79,10 +79,10 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v2)
 
         malg = TestUM.computeMetrics(v1, v2, pkg)
-        TestHelper.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "FR": 1})
+        TestHelper.metrics_score_comparing(self, malg, {"C": 1, "CC": 1, "FR": 1})
 
 
-    def test_v4v5_renameingonefield_String(self):
+    def test_v4v5_renameing_one_field_string(self):
         pkg = 'com.example.xinyin.myapplication'
         v1 = 'apks/app4.apk.smali'
         v2 = 'apks/app5.apk.smali'
@@ -93,9 +93,9 @@ class TestUM(unittest.TestCase):
 
 
         malg = TestUM.computeMetrics(v1, v2, pkg)
-        TestHelper.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "FR": 1})
+        TestHelper.metrics_score_comparing(self, malg, {"C": 1, "CC": 1, "FR": 1})
 
-    def test_v5v6_changemethod(self):
+    def test_v5v6_change_method(self):
         pkg = 'com.example.xinyin.myapplication'
         v1 = 'apks/app5.apk.smali'
         v2 = 'apks/app6.apk.smali'
@@ -105,9 +105,9 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v2)
 
         malg = TestUM.computeMetrics(v1, v2, pkg)
-        TestHelper.metricsScoreComparing(self, malg, {"R": 1, "CC": 1, "MC": 1})
+        TestHelper.metrics_score_comparing(self, malg, {"R": 1, "CC": 1, "MC": 1})
 
-    def test_v6v7_renameingonefield(self):
+    def test_v6v7_renameing_one_field(self):
         pkg = 'com.example.xinyin.myapplication'
         v1 = 'apks/app6.apk.smali'
         v2 = 'apks/app7.apk.smali'
@@ -117,7 +117,7 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v2)
 
         malg = TestUM.computeMetrics(v1, v2, pkg)
-        TestHelper.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "FR": 1})
+        TestHelper.metrics_score_comparing(self, malg, {"C": 1, "CC": 1, "FR": 1})
 
  
 
@@ -131,7 +131,7 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v2)
 
         malg = TestUM.computeMetrics(v1, v2, pkg)
-        TestHelper.metricsScoreComparing(self, malg, {"R": 1, "CC": 1, "MC": 1})
+        TestHelper.metrics_score_comparing(self, malg, {"R": 1, "CC": 1, "MC": 1})
 
 
 
@@ -145,7 +145,7 @@ class TestUM(unittest.TestCase):
         TestUM.prepare(v2)
 
         malg = TestUM.computeMetrics(v1, v2, pkg)
-        TestHelper.metricsScoreComparing(self, malg, {"C": 1, "CC": 1, "MC": 2})
+        TestHelper.metrics_score_comparing(self, malg, {"C": 1, "CC": 1, "MC": 2})
 
 
 if __name__ == '__main__':

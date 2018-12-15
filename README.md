@@ -60,8 +60,8 @@ A shorthand function is available to get the package name/id.
 It simply query the `aapt` tool and parse the output.
 
 ```python
->>> from smalanalysis.tools.commands import queryAaptForPackageName
->>> queryAaptForPackageName("/Users/vince/base.apk")
+>>> from smalanalysis.tools.commands import query_aapt_for_package_name
+>>> query_aapt_for_package_name("/Users/vince/base.apk")
 b'com.android.packagename'
 ```
 
@@ -71,9 +71,8 @@ This framework proposes a really simple object representation of a smali file.
 After disassembling an APK, the structure of the APK is represented based on an internal representation.
 
 ```python
->>> from smalanalysis.smali.SmaliProject import SmaliProject
->>> proj = SmaliProject()
->>> proj.parseProject('/Users/vince/base.apk.smali')
+>>> from smalanalysis.smali.project import SmaliProject
+>>> proj = SmaliProject.parse_project('/Users/vince/base.apk.smali')
 ```
 
 At this stage `proj` contains a representation of the project (ie a `SmaliProject` class).

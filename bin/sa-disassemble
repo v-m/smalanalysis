@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-# Convenience method for getting smali bytecode from an APK using baksmali
-# Author: Vincenzo Musco (http://www.vmusco.com)
-# Creation date: 2017-09
+"""Convenience method for getting smali bytecode from an APK using baksmali"""
+
+__author__ = "Vincenzo Musco (http://www.vmusco.com)"
+__data__ = "2017-09"
 
 import argparse
 import shutil
@@ -14,85 +15,89 @@ import smalanalysis
 
 COMPRESSION_METHOD = zipfile.ZIP_DEFLATED
 
-def zipdir(path, smalizip):
+
+def zip_dir(path, smali_zip):
     for root, dirs, files in os.walk(path):
         for file in files:
-            pth = os.path.join(root, file)
-            pthinzip = pth[len(path):]
+            a_path = os.path.join(root, file)
+            path_in_zip = a_path[len(path):]
 
-            if pthinzip[0] == os.sep:
-                pthinzip = pthinzip[1:]
+            if path_in_zip[0] == os.sep:
+                path_in_zip = path_in_zip[1:]
 
-            smalizip.write(pth, pthinzip)
+            smali_zip.write(a_path, path_in_zip)
 
-def runSmali(apkpath, smalipath, overwrite=False, buildZip=False, mergeFolders=True, custom_baksmali=None):
-    if os.path.exists(smalipath):
+
+def run_smali(process_apk_path, smali_path, overwrite=False, build_zip=False, merge_folders=True, custom_baksmali=None):
+    if os.path.exists(smali_path):
         if overwrite:
-            if os.path.isfile(smalipath):
-                os.remove(smalipath)
+            if os.path.isfile(smali_path):
+                os.remove(smali_path)
             else:
-                shutil.rmtree(smalipath)
+                shutil.rmtree(smali_path)
         else:
             return
 
-    dexesfolder = []
-    z = zipfile.ZipFile(apkpath)
+    dexes_folder = []
+    z = zipfile.ZipFile(process_apk_path)
     for file in [file for file in z.namelist() if re.match('^classes[0-9]*.dex$', file)]:
-        fullsmalipath = '_'.join([smalipath, file])
-        dexesfolder.append(fullsmalipath)
+        full_smali_path = '_'.join([smali_path, file])
+        dexes_folder.append(full_smali_path)
 
-        if os.path.exists(fullsmalipath):
-            shutil.rmtree(fullsmalipath)
+        if os.path.exists(full_smali_path):
+            shutil.rmtree(full_smali_path)
 
         baksmali_bin = custom_baksmali
         if baksmali_bin is None:
             baksmali_bin = smalanalysis.get_baksmali_bin()
 
-        task = subprocess.Popen('java -jar %s disassemble "%s/%s" -o "%s"' % (baksmali_bin, apkpath, file, fullsmalipath), shell=True, stdout=subprocess.PIPE)
+        command = 'java -jar %s disassemble "%s/%s" -o "%s"' % (baksmali_bin, process_apk_path, file, full_smali_path)
+        task = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
         task.wait()
 
     z.close()
 
-    if buildZip:
-        with zipfile.ZipFile(smalipath, 'w', compression=COMPRESSION_METHOD) as smalizip:
-            for dir in dexesfolder:
-                zipdir(dir, smalizip)
-                shutil.rmtree(dir)
+    if build_zip:
+        with zipfile.ZipFile(smali_path, 'w', compression=COMPRESSION_METHOD) as smalizip:
+            for dex_dir in dexes_folder:
+                zip_dir(dex_dir, smalizip)
+                shutil.rmtree(dex_dir)
     else:
-        if mergeFolders:
-            os.mkdir(smalipath)
+        if merge_folders:
+            os.mkdir(smali_path)
 
-            for dir in dexesfolder:
-                for sdir in os.listdir(dir):
-                    shutil.move('/'.join([dir, sdir]), '/'.join([smalipath, sdir]))
+            for dex_dir in dexes_folder:
+                for sdir in os.listdir(dex_dir):
+                    shutil.move('/'.join([dex_dir, sdir]), '/'.join([smali_path, sdir]))
 
-                shutil.rmtree(dir)
+                shutil.rmtree(dex_dir)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Extract smali content.')
     parser.add_argument('apkpath', type=str,
                         help='The full path to the apk')
     parser.add_argument('output', type=str,
-                         help='Where to output smali files', nargs='?', default = None )
+                        help='Where to output smali files', nargs='?', default=None)
     parser.add_argument('--overwrite', '-o', action='store_true',
                         help='Delete all previous exportation')
     parser.add_argument('--folder', '-f', action='store_true',
                         help='Disassemble in a folder instead than a ZIP file (deprecated)')
     parser.add_argument('--dont-merge', '-D', action='store_true',
                         help='If --folder, don\'t merge back all dexes in one folder')
-    parser.add_argument('--custom-baksmali', '-b', type=str, default = None,
+    parser.add_argument('--custom-baksmali', '-b', type=str, default=None,
                         help='Do not use the included baksmali binary and specify one')
 
     args = parser.parse_args()
 
-    apkpath = args.apkpath
+    apk_path = args.apkpath
     output = args.output
-    dofolder = args.folder
-    dontmerge = args.dont_merge
+    produce_folder = args.folder
+    do_not_merge = args.dont_merge
 
     if output is None:
-        output = '%s.smali'%apkpath
+        output = '%s.smali' % apk_path
 
     overwrite = args.overwrite
 
-    runSmali(apkpath, output, overwrite, not dofolder, not dontmerge, args.custom_baksmali)
+    run_smali(apk_path, output, overwrite, not produce_folder, not do_not_merge, args.custom_baksmali)
